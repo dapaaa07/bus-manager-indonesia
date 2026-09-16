@@ -69,7 +69,26 @@ line-height: 1;
   const[tbMode,setTbMode]=y.useState("TIMETABLE");
   const[grpMode,setGrpMode]=y.useState("ROUTE");
   const[selTrip,setSelTrip]=y.useState(null);
-  const[routeFrequencies,setRouteFrequencies]=y.useState({});
+  const[routeFrequencies,setRouteFrequencies]=y.useState(()=>{
+    const init={};
+    (s.routes||[]).forEach(rt=>{
+      init[rt.id]=(s.routeFrequencies&&s.routeFrequencies[rt.id])||rt.headwayMinutes||30;
+    });
+    return init;
+  });
+
+  y.useEffect(()=>{
+    if(s.routes||s.routeFrequencies){
+      setRouteFrequencies(prev=>{
+        const next={...prev};
+        (s.routes||[]).forEach(rt=>{
+          const val=(s.routeFrequencies&&s.routeFrequencies[rt.id])||rt.headwayMinutes;
+          if(val)next[rt.id]=val;
+        });
+        return next;
+      });
+    }
+  },[s.routes,s.routeFrequencies]);
 
   const P=y.useMemo(()=>{let W=[...s.passengersList||[]];if(d){const me=d.toLowerCase();W=W.filter(ie=>ie.name.toLowerCase().includes(me)||ie.busModel.toLowerCase().includes(me)||ie.licensePlate.toLowerCase().includes(me))}return g!=="ALL"&&(W=W.filter(me=>me.departureDay===g)),W},[s.passengersList,d,g]);
 
@@ -117,6 +136,41 @@ line-height: 1;
   const handleSetRouteFreq=(rId,val)=>{
     const freq=Math.max(5,Math.min(360,Number(val)||30));
     setRouteFrequencies(prev=>({...prev,[rId]:freq}));
+    a(prev=>{
+      const updatedRoutes=(prev.routes||[]).map(rt=>rt.id===rId?{...rt,headwayMinutes:freq}:rt);
+      const updatedFreqs={...(prev.routeFrequencies||{}),[rId]:freq};
+      const assignedBuses=(prev.buses||[]).filter(b=>b.assignedRouteId===rId);
+      let updatedBuses=[...(prev.buses||[])];
+      if(assignedBuses.length>0){
+        const rt=(prev.routes||[]).find(r=>r.id===rId);
+        const dist=rt?(rt.distance||100):100;
+        const oneWayM=Math.max(45,Math.min(360,Math.round((dist/40)*60)));
+        assignedBuses.forEach((bus,i)=>{
+          const bIdx=updatedBuses.findIndex(b=>b.id===bus.id);
+          if(bIdx!==-1){
+            const depM=300+(i*freq);
+            const depH=Math.floor((depM%1440)/60);
+            const depMin=depM%60;
+            const depTimeStr=`${String(depH).padStart(2,"0")}:${String(depMin).padStart(2,"0")}`;
+            const retM=depM+oneWayM+15;
+            const retH=Math.floor((retM%1440)/60);
+            const retMin=retM%60;
+            const retTimeStr=`${String(retH).padStart(2,"0")}:${String(retMin).padStart(2,"0")}`;
+            updatedBuses[bIdx]={
+              ...updatedBuses[bIdx],
+              departureTime:depTimeStr,
+              returnDepartureTime:retTimeStr
+            };
+          }
+        });
+      }
+      return {
+        ...prev,
+        routes:updatedRoutes,
+        routeFrequencies:updatedFreqs,
+        buses:updatedBuses
+      };
+    });
   };
 
   const handleAutoDispatchAll=()=>{
