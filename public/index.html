@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Bus Manager Indonesia</title>
+    
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="shortcut icon" href="./favicon.ico" />
+    <link rel="apple-touch-icon" href="./favicon.png" />
+    <link rel="manifest" href="./manifest.json" />
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    <style>
+      /* Custom scrollbar for webkit */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #1e293b; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #475569; 
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #64748b; 
+      }
+      .leaflet-container {
+        width: 100%;
+        height: 100%;
+        background: #0f172a;
+      }
+      /* Loading Screen */
+      #loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #0f172a;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease-out;
+        color: white;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      }
+      /* Error overlay style */
+      #error-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #7f1d1d;
+        color: #fff;
+        z-index: 99999;
+        padding: 20px;
+        overflow: auto;
+        font-family: monospace;
+        white-space: pre-wrap;
+        font-size: 12px;
+      }
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #10b981;
+        border-top: 4px solid transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+    <!-- PERFORMANCE.MEASURE SAFETY GUARD FOR REACT 19 DEV & WEBVIEW -->
+    <script>
+      (function() {
+        if (typeof window !== 'undefined' && window.performance && typeof window.performance.measure === 'function') {
+          var _origMeasure = window.performance.measure.bind(window.performance);
+          window.performance.measure = function(name, startOrOptions, end) {
+            try {
+              return _origMeasure(name, startOrOptions, end);
+            } catch (err) {
+              try {
+                // If structuredClone failed with DataCloneError, retry without heavy detail
+                if (startOrOptions && typeof startOrOptions === 'object') {
+                  return _origMeasure(name, {
+                    start: typeof startOrOptions.start === 'number' ? startOrOptions.start : undefined,
+                    end: typeof startOrOptions.end === 'number' ? startOrOptions.end : undefined
+                  });
+                }
+                return _origMeasure(name);
+              } catch (_) {
+                // Prevent any timing failure from throwing or crashing React 19 reconciler
+                return undefined;
+              }
+            }
+          };
+        }
+      })();
+    </script>
+    <!-- GLOBAL ERROR HANDLER FOR APK DEBUGGING & RESILIENCE -->
+    <script>
+      window.onerror = function(message, source, lineno, colno, error) {
+        var msgStr = String(message || '') + ' ' + String(error && error.message || '');
+        if (
+          msgStr.includes('FIRESTORE INTERNAL ASSERTION FAILED') ||
+          msgStr.includes('prefixPath') ||
+          msgStr.includes('IndexedDb') ||
+          msgStr.includes('indexedDb') ||
+          msgStr.includes('IDBDatabase') ||
+          msgStr.includes('send was called before connect') ||
+          msgStr.includes('[vite]') ||
+          msgStr.includes('WebSocket') ||
+          msgStr.includes('DataCloneError') ||
+          msgStr.includes('Data cannot be cloned') ||
+          msgStr.includes("Failed to execute 'measure' on 'Performance'") ||
+          msgStr.includes('Should not already be working')
+        ) {
+          console.warn("Benign internal warning suppressed:", message, error);
+          return true;
+        }
+        var overlay = document.getElementById('error-overlay');
+        if(overlay) {
+          overlay.style.display = 'block';
+          overlay.innerText += "ERROR: " + message + "\nAT: " + source + ":" + lineno + "\n\n";
+          var loader = document.getElementById('loading-screen');
+          if(loader) loader.style.display = 'none';
+        }
+      };
+      window.onunhandledrejection = function(event) {
+        var reasonStr = String(event && event.reason ? (event.reason.message || event.reason) : '');
+        if (
+          reasonStr.includes('FIRESTORE INTERNAL ASSERTION FAILED') ||
+          reasonStr.includes('prefixPath') ||
+          reasonStr.includes('IndexedDb') ||
+          reasonStr.includes('indexedDb') ||
+          reasonStr.includes('unimplemented') ||
+          reasonStr.includes('IDBDatabase') ||
+          reasonStr.includes('send was called before connect') ||
+          reasonStr.includes('[vite]') ||
+          reasonStr.includes('WebSocket') ||
+          reasonStr.includes('DataCloneError') ||
+          reasonStr.includes('Data cannot be cloned') ||
+          reasonStr.includes("Failed to execute 'measure' on 'Performance'") ||
+          reasonStr.includes('Should not already be working')
+        ) {
+          console.warn("Benign rejection suppressed:", event.reason);
+          event.preventDefault();
+          return;
+        }
+        var overlay = document.getElementById('error-overlay');
+        if(overlay) {
+          overlay.style.display = 'block';
+          overlay.innerText += "PROMISE REJECTION: " + event.reason + "\n\n";
+        }
+      };
+    </script>
+    
+    <!-- SERVICE WORKER REGISTRATION (OFFLINE SUPPORT) -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(registration => {
+              console.log('SW Registered:', registration);
+            })
+            .catch(error => {
+              console.log('SW Registration Failed:', error);
+            });
+        });
+      }
+    </script>
+    <script type="module" crossorigin src="./assets/index-0fHPht7m.js?v=20260916_v2"></script>
+    <link rel="modulepreload" crossorigin href="./assets/vendor-core-B3tVuMQH.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-firebase-dFXq44L0.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-motion-BwGN6o2z.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-three-Bxpf3Qvx.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-maps-DJgQBX2L.js">
+    <link rel="stylesheet" crossorigin href="./assets/index-a1JjE7cH.css">
+  
+    <!-- SERVICE WORKER CLEANUP & CACHE BUSTING -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (let registration of registrations) {
+            registration.unregister().then(function(boolean) {
+              console.log('Unregistered old SW:', boolean);
+            });
+          }
+        });
+      }
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          for (let name of names) {
+            if (name.includes('cache-v1')) {
+              caches.delete(name);
+              console.log('Deleted old cache:', name);
+            }
+          }
+        });
+      }
+    </script>
+
+  </head>
+  <body class="bg-slate-950 text-slate-100 overflow-hidden select-none">
+    <div id="root">
+      <!-- FALLBACK LOADING SCREEN FOR APK WRAPPERS -->
+      <div id="loading-screen">
+        <div class="spinner"></div>
+        <h1 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem;">Bus Manager Indonesia</h1>
+        <p style="opacity: 0.7; font-size: 0.875rem;">Mohon tunggu, sedang mengunduh aset.</p>
+        <p style="opacity: 0.5; font-size: 0.75rem; margin-top: 2rem;">Butuh Internet untuk Awal</p>
+      </div>
+    </div>
+    <div id="error-overlay"></div>
+  </body>
+</html>

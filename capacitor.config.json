@@ -1,0 +1,9 @@
+{
+  "appId": "com.busmanager.indonesia",
+  "appName": "Bus Manager Indonesia",
+  "webDir": "public",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}

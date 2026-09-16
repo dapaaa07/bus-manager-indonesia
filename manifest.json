@@ -1,0 +1,27 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Bus Manager Indonesia",
+  "orientation": "portrait",
+  "scope": "/",
+  "short_name": "Bus Manager ID",
+  "start_url": "/",
+  "theme_color": "#092b65",
+  "id": "BMID",
+  "description": "Bus Manager Indonesia",
+  "lang": "id",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192 512x512 640x640 any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "display_override": [
+    "window-controls-overlay",
+    "fullscreen",
+    "standalone"
+  ]
+}

@@ -1,0 +1,233 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%" shape-rendering="geometricPrecision">
+  <defs>
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#E2E7DB"/>
+      <stop offset="65%" stop-color="#EFEADE"/>
+      <stop offset="100%" stop-color="#F5EFE6"/>
+    </linearGradient>
+    <linearGradient id="roadGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7B8088"/>
+      <stop offset="100%" stop-color="#555A63"/>
+    </linearGradient>
+    <linearGradient id="busFrontGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1B4ECF"/>
+      <stop offset="100%" stop-color="#245DE6"/>
+    </linearGradient>
+    <linearGradient id="busSideGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#316CEE"/>
+      <stop offset="100%" stop-color="#417CF6"/>
+    </linearGradient>
+    <linearGradient id="busGlassGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#246794"/>
+      <stop offset="100%" stop-color="#1B4D70"/>
+    </linearGradient>
+    <clipPath id="roundedAppIcon">
+      <rect x="0" y="0" width="512" height="512" rx="108" ry="108"/>
+    </clipPath>
+  </defs>
+
+  <!-- Sky & Landscape Background Container -->
+  <g clip-path="url(#roundedAppIcon)">
+    <rect width="512" height="512" fill="url(#skyGrad)"/>
+
+    <!-- Distant Geometric Low-Poly Clouds -->
+    <polygon points="68,54 86,46 112,46 122,54 104,62 76,60" fill="#FFFFFF" opacity="0.9"/>
+    <polygon points="86,46 104,38 116,46" fill="#FFFFFF" opacity="0.75"/>
+    
+    <polygon points="318,58 336,50 364,50 376,58 358,66 328,64" fill="#FFFFFF" opacity="0.9"/>
+    <polygon points="336,50 354,42 368,50" fill="#FFFFFF" opacity="0.75"/>
+
+    <polygon points="252,118 266,112 288,112 296,118 282,124 260,122" fill="#FFFFFF" opacity="0.85"/>
+
+    <!-- Background Low-Poly Rolling Hills & Rice Terraces -->
+    <polygon points="380,240 440,210 512,230 512,320 380,320" fill="#B3C488"/>
+    <polygon points="410,225 512,215 512,260 410,260" fill="#A1B574"/>
+    <polygon points="420,240 512,230 512,250" fill="#8FA560"/>
+    <polygon points="430,255 512,245 512,265" fill="#7D934E"/>
+    <polygon points="440,270 512,260 512,280" fill="#718644"/>
+
+    <!-- Left Background Low-Poly Hills and Forest -->
+    <polygon points="0,170 80,150 160,180 230,220 180,270 0,260" fill="#95AD6D"/>
+    <polygon points="0,200 60,175 120,205 150,250 0,250" fill="#7A9452"/>
+    <polygon points="0,230 50,205 90,235 120,270 0,270" fill="#5F7B39"/>
+
+    <!-- Indonesian Wooden Electric Pole & Power Cables -->
+    <g>
+      <!-- Pole Post -->
+      <polygon points="41,86 50,86 48,240 39,240" fill="#6A4930"/>
+      <polygon points="41,86 44,86 42,240 39,240" fill="#563B26"/>
+      <!-- Crossbars -->
+      <polygon points="20,105 72,105 72,112 20,112" fill="#7B563B"/>
+      <polygon points="20,124 72,124 72,130 20,130" fill="#7B563B"/>
+      <!-- Transformer Box -->
+      <polygon points="47,150 60,150 59,172 46,172" fill="#9CA3AF"/>
+      <polygon points="46,150 49,150 48,172 45,172" fill="#6B7280"/>
+      <!-- Cables -->
+      <path d="M-10,95 Q40,115 120,130 Q170,140 240,155" fill="none" stroke="#2B2D31" stroke-width="2.2"/>
+      <path d="M-10,114 Q40,134 130,150 Q180,160 250,175" fill="none" stroke="#2B2D31" stroke-width="2"/>
+    </g>
+
+    <!-- Roadside Wooden "WARUNG" Stall -->
+    <g>
+      <!-- Roof Shed -->
+      <polygon points="-10,235 48,230 76,260 0,265" fill="#88684C"/>
+      <polygon points="48,230 84,235 76,260" fill="#71543B"/>
+      <!-- Warung Structure Body -->
+      <polygon points="0,265 72,260 68,328 0,332" fill="#A8815F"/>
+      <!-- Warung Signboard -->
+      <rect x="42" y="260" width="34" height="13" fill="#FFE8B0" rx="1.5"/>
+      <text x="44" y="270" font-family="'Arial Black', sans-serif" font-size="7" font-weight="900" fill="#633918" letter-spacing="0.5">WARUNG</text>
+      <!-- Stall counter items (bananas/snacks) -->
+      <polygon points="20,266 34,266 33,288 20,288" fill="#FBBF24"/>
+      <polygon points="22,270 32,270 31,274 21,274" fill="#D97706"/>
+      <polygon points="22,277 32,277 31,281 21,281" fill="#D97706"/>
+      <!-- Table Bench -->
+      <polygon points="62,306 82,306 82,322 62,322" fill="#5F442F"/>
+    </g>
+
+    <!-- Winding Countryside Asphalt Road -->
+    <polygon points="0,320 280,270 470,282 512,300 512,512 0,512" fill="url(#roadGrad)"/>
+    <!-- Road Shoulder / Dirt Edge -->
+    <polygon points="0,318 280,268 284,272 0,328" fill="#A48C6B"/>
+    <polygon points="360,275 512,290 512,304 360,285" fill="#A48C6B"/>
+    <!-- White Side Boundary Lines -->
+    <polygon points="320,338 468,284 472,286 322,342" fill="#FFFFFF"/>
+    <!-- Road Yellow Center Divider Line -->
+    <polygon points="0,472 130,404 136,406 0,480" fill="#FBC02D"/>
+
+    <!-- Left Roadside Greenery / Low-Poly Foliage -->
+    <polygon points="0,326 28,322 18,348 0,344" fill="#7FA448"/>
+    <polygon points="0,344 26,338 32,364 0,360" fill="#5F8830"/>
+
+    <!-- Low-Poly 3D Blue Bus (Front-Quarter View Perspective) -->
+    <g>
+      <!-- Bus Drop Shadow on Asphalt Road -->
+      <polygon points="98,390 270,398 424,324 390,300 110,380" fill="#1C2128" opacity="0.45"/>
+
+      <!-- 1. BUS FRONT FACE (Double Glass, High-Deck Shape) -->
+      <!-- Main Front Blue Shell -->
+      <polygon points="106,163 260,156 260,398 106,378" fill="url(#busFrontGrad)"/>
+      <polygon points="106,163 118,162 118,379 106,378" fill="#143DAA"/>
+
+      <!-- Upper Windshield (Panoramic Deck) -->
+      <polygon points="112,192 254,188 254,242 112,243" fill="url(#busGlassGrad)"/>
+      <polygon points="112,192 120,192 120,243 112,243" fill="#153B55"/>
+
+      <!-- Double Glass Bando Divider Bar (Mid Horizontal Beam) -->
+      <polygon points="110,242 256,241 256,252 110,253" fill="#173582"/>
+      <polygon points="111,244 255,243 255,248 111,249" fill="#1F47A8"/>
+
+      <!-- Lower Windshield (Cockpit Glass) -->
+      <polygon points="112,252 254,251 254,338 112,336" fill="url(#busGlassGrad)"/>
+      <polygon points="112,252 122,252 122,336 112,336" fill="#12344D"/>
+
+      <!-- Front White Decorative Grille Stripe -->
+      <polygon points="106,342 260,358 260,364 106,348" fill="#E8F1FC"/>
+
+      <!-- Front Headlamps / Foglamps (Crisp White Rectangles) -->
+      <polygon points="118,364 144,367 144,379 118,376" fill="#FFFFFF"/>
+      <polygon points="214,374 245,377 245,389 214,386" fill="#FFFFFF"/>
+
+      <!-- 2. BUS SIDE BODY (Long Passenger Cabin Flank) -->
+      <polygon points="260,156 416,195 416,306 260,398" fill="url(#busSideGrad)"/>
+
+      <!-- Side Panoramic Continuous Dark Tinted Window -->
+      <polygon points="276,186 414,213 414,272 276,275" fill="#1E232B"/>
+      <!-- Window Highlight Glare Line -->
+      <polygon points="276,186 414,213 414,220 276,192" fill="#2E3744" opacity="0.7"/>
+
+      <!-- Side Luggage Compartment Flap Doors Outline -->
+      <polygon points="334,302 356,290 356,340 334,354" fill="none" stroke="#2551BD" stroke-width="1.8"/>
+      <polygon points="362,286 376,278 376,328 362,336" fill="none" stroke="#2551BD" stroke-width="1.8"/>
+
+      <!-- Bus Side Rear Wheels -->
+      <!-- Front Rear Wheel -->
+      <polygon points="388,298 398,292 398,328 388,334" fill="#1E1915"/>
+      <ellipse cx="393" cy="313" rx="4.5" ry="14" fill="#604936"/>
+      <!-- Second Rear Axle Wheel -->
+      <polygon points="400,290 408,285 408,318 400,323" fill="#1E1915"/>
+      <ellipse cx="404" cy="304" rx="3.5" ry="12" fill="#604936"/>
+
+      <!-- Front Drive Wheel -->
+      <ellipse cx="308" cy="358" rx="10" ry="22" fill="#543F2F"/>
+      <ellipse cx="308" cy="358" rx="5" ry="12" fill="#312217"/>
+
+      <!-- 3. BUS ROOF & ROOF AC POD -->
+      <!-- Roof Top Surface -->
+      <polygon points="106,163 260,156 416,195 264,188" fill="#3D7AF6"/>
+      <!-- Roof AC Unit -->
+      <polygon points="352,180 394,190 390,202 348,192" fill="#E8EEF5"/>
+      <polygon points="348,192 390,202 390,198 348,188" fill="#CBD5E1"/>
+
+      <!-- 4. SIGNATURE BLACK SPION TANDUK (Horn Mirrors) -->
+      <!-- Left Mirror (Facing Viewer) -->
+      <polygon points="82,246 106,246 106,251 82,251" fill="#222"/>
+      <polygon points="74,249 92,249 92,286 74,286" fill="#111827"/>
+      <polygon points="74,249 78,249 78,286 74,286" fill="#374151"/>
+      <!-- Right Mirror (Far Side) -->
+      <polygon points="232,246 268,246 268,252 232,252" fill="#222"/>
+      <polygon points="232,252 250,252 250,296 232,296" fill="#111827"/>
+      <polygon points="246,252 250,252 250,296 246,296" fill="#374151"/>
+    </g>
+
+    <!-- RIGHT SIDE LOW-POLY COCONUT PALM TREES & FOLIAGE -->
+    <g>
+      <!-- Big Palm Tree Trunk in Foreground Right -->
+      <polygon points="494,84 512,78 512,512 488,512" fill="#7D5C40"/>
+      <polygon points="494,84 502,80 496,512 488,512" fill="#664931"/>
+      <polygon points="502,80 512,78 512,512 496,512" fill="#8F6B4C"/>
+
+      <!-- Low Poly Palm Fronds (Geometric Leaves) -->
+      <!-- Top Left Leaf -->
+      <polygon points="498,80 440,54 430,78 480,94 498,84" fill="#588C32"/>
+      <polygon points="498,80 440,54 466,66 498,84" fill="#72AC44"/>
+      <!-- Left Hanging Leaf -->
+      <polygon points="496,84 394,92 418,118 486,96" fill="#4B772A"/>
+      <polygon points="496,84 394,92 444,104 486,96" fill="#639B38"/>
+      <!-- Lower Hanging Leaf -->
+      <polygon points="494,92 432,154 456,168 490,108" fill="#406822"/>
+      <polygon points="494,92 432,154 472,138 490,108" fill="#588C32"/>
+      <!-- Top Center Leaf -->
+      <polygon points="504,78 480,0 512,0 512,74" fill="#72AC44"/>
+
+      <!-- Mid-ground Palm Tree on the right background -->
+      <polygon points="468,168 474,166 476,260 470,260" fill="#7D5C40"/>
+      <polygon points="472,166 446,150 460,172" fill="#639B38"/>
+      <polygon points="472,166 496,152 484,174" fill="#72AC44"/>
+      <polygon points="472,166 448,182 468,180" fill="#4B772A"/>
+
+      <!-- Lush Roadside Low-Poly Tropical Bushes in Foreground -->
+      <polygon points="380,512 420,440 460,465 440,512" fill="#537F2C"/>
+      <polygon points="420,440 452,385 490,420 460,465" fill="#6BA339"/>
+      <polygon points="452,385 490,340 512,380 490,420" fill="#7BB942"/>
+      <polygon points="490,340 512,295 512,380" fill="#8AC84C"/>
+      <!-- Additional front foliage facets -->
+      <polygon points="350,512 390,470 420,512" fill="#446B23"/>
+      <polygon points="430,512 480,450 512,512" fill="#3B5D1E"/>
+      <!-- Warm accent leaf / flower -->
+      <polygon points="410,380 430,365 435,385 418,390" fill="#DC5F34"/>
+    </g>
+
+    <!-- FOREGROUND INDONESIAN MILESTONE MARKER (KM 72 PATOK JALAN) -->
+    <g>
+      <!-- Shadow on Road -->
+      <ellipse cx="346" cy="494" rx="28" ry="12" fill="#1C2128" opacity="0.4"/>
+
+      <!-- 3D Milestone Body - Left / Darker Side -->
+      <path d="M 322,410 L 322,488 L 332,492 L 332,412 Z" fill="#D3D8E0"/>
+      <!-- 3D Milestone Body - Front Main Face -->
+      <path d="M 332,412 L 332,492 L 368,474 L 368,398 Z" fill="#FFFFFF"/>
+
+      <!-- Milestone Red / Orange Arched Top Cap -->
+      <path d="M 322,410 Q 328,394 336,396 L 332,412 Z" fill="#D84315"/>
+      <path d="M 332,412 L 336,396 Q 355,380 372,398 L 368,414 Z" fill="#E64A19"/>
+      <path d="M 336,396 Q 355,380 372,398 L 368,398 Z" fill="#FF7043"/>
+
+      <!-- Text "KM" -->
+      <text x="340" y="435" font-family="'Arial Black', -apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="900" fill="#1E293B" transform="skewY(-13)" letter-spacing="1">KM</text>
+      <!-- Text "72" -->
+      <text x="339" y="458" font-family="'Arial Black', -apple-system, BlinkMacSystemFont, sans-serif" font-size="21" font-weight="900" fill="#1E293B" transform="skewY(-13)" letter-spacing="0.5">72</text>
+    </g>
+
+  </g>
+</svg>
