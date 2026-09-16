@@ -69,7 +69,7 @@ line-height: 1;
   const[tbMode,setTbMode]=y.useState("TIMETABLE");
   const[grpMode,setGrpMode]=y.useState("ROUTE");
   const[selTrip,setSelTrip]=y.useState(null);
-  const[selectedBusMaint,setSelectedBusMaint]=y.useState(null);
+  const[routeFrequencies,setRouteFrequencies]=y.useState({});
 
   const spareParts=(s&&s.sparePartsStock)||{oil:12,brakePads:10,tires:8,batteries:5,filters:15};
   const facilities=(s&&s.depotFacilities)||{workshopBays:2,washBays:1,sparePartsWarehouse:2,staffLounge:1,serviceCenter:1};
@@ -104,6 +104,19 @@ line-height: 1;
     return "bg-gradient-to-r from-indigo-800 to-slate-700 border-indigo-400/60 text-white shadow-indigo-900/50";
   };
 
+  const calcCbmFleetNeeded=(dist,freqMin)=>{
+    const oneWayM=Math.max(30,Math.round(((dist||100)/60)*60));
+    const roundTripM=(oneWayM*2)+30;
+    const recommendedBuses=Math.max(1,Math.ceil(roundTripM/freqMin));
+    const departuresPerDay=Math.floor((17*60)/freqMin)+1;
+    return{oneWayM,roundTripM,recommendedBuses,departuresPerDay};
+  };
+
+  const handleSetRouteFreq=(rId,val)=>{
+    const freq=Math.max(5,Math.min(360,Number(val)||30));
+    setRouteFrequencies(prev=>({...prev,[rId]:freq}));
+  };
+
   const handleAutoDispatchAll=()=>{
     a(prev=>{
       const idleBuses=(prev.buses||[]).filter(b=>!b.isBareChassis&&(b.status==="IDLE"||!b.assignedRouteId));
@@ -129,8 +142,10 @@ line-height: 1;
       const updatedStaff=[...prev.staff];
 
       activeRoutes.forEach(rt=>{
+        const customFreq=routeFrequencies[rt.id]||rt.headwayMinutes||30;
+        const cbmCalc=calcCbmFleetNeeded(rt.distance,customFreq);
         const existingAssigned=updatedBuses.filter(b=>b.assignedRouteId===rt.id).length;
-        const targetBusesNeeded=Math.max(1,Math.min(4,Math.ceil((rt.distance||100)/150)));
+        const targetBusesNeeded=cbmCalc.recommendedBuses;
 
         for(let i=existingAssigned;i<targetBusesNeeded;i++){
           if(busIdx<idleBuses.length&&drvIdx<idleDrivers.length){
@@ -140,9 +155,15 @@ line-height: 1;
 
             const bIndex=updatedBuses.findIndex(b=>b.id===targetBus.id);
             if(bIndex!==-1){
-              const depH=6+(i*3)%14;
-              const depTimeStr=`${String(depH).padStart(2,"0")}:00`;
-              const retTimeStr=`${String(Math.min(23,depH+6)).padStart(2,"0")}:00`;
+              const depM=300+(i*customFreq);
+              const depH=Math.floor((depM%1440)/60);
+              const depMin=depM%60;
+              const depTimeStr=`${String(depH).padStart(2,"0")}:${String(depMin).padStart(2,"0")}`;
+
+              const retM=depM+cbmCalc.oneWayM+15;
+              const retH=Math.floor((retM%1440)/60);
+              const retMin=retM%60;
+              const retTimeStr=`${String(retH).padStart(2,"0")}:${String(retMin).padStart(2,"0")}`;
 
               updatedBuses[bIndex]={
                 ...updatedBuses[bIndex],
@@ -160,7 +181,7 @@ line-height: 1;
 
               if(targetKrn){
                 const kIndex=updatedStaff.findIndex(st=>st.id===targetKrn.id);
-                if(kIndex!==-1)updatedStaff[kIndex]={...updatedStaff[kIndex],assignedBusId:targetBus.id,status:"ASSIGNED"};
+                if(kIndex!==-1)updatedStaff[kIndex]={...updatedStaff[kIndex],assignedBusId:targetKrn.id,status:"ASSIGNED"};
               }
 
               countDispatched++;
@@ -170,11 +191,11 @@ line-height: 1;
       });
 
       if(countDispatched===0){
-        alert("Semua rute aktif sudah memiliki alokasi armada bus yang mencukupi!");
+        alert("Semua rute aktif sudah memiliki alokasi armada bus yang mencukupi rekomendasi CBM!");
         return prev;
       }
 
-      const notifMsg=`🤖 [CBM SMART DISPATCH] Berhasil secara otomatis mengalokasikan ${countDispatched} armada bus & pengemudi ke rute operasional!`;
+      const notifMsg=`🤖 [CBM SMART DISPATCH] Berhasil secara otomatis mengalokasikan ${countDispatched} armada bus & pengemudi sesuai kalkulasi frekuensi CBM!`;
       return{
         ...prev,
         buses:updatedBuses,
@@ -270,13 +291,14 @@ line-height: 1;
             "City Bus Manager Hub",
             e.jsx("span",{className:"text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider",children:"Full CBM System"})
           ]}),
-          e.jsx("p",{className:"text-slate-400 text-[10px] sm:text-xs font-medium mt-0.5",children:"Timetable 24 Jam, Bengkel Spare Parts, Staf Fatigue, Rating 5★, & Depot CBM"})
+          e.jsx("p",{className:"text-slate-400 text-[10px] sm:text-xs font-medium mt-0.5",children:"Timetable 24 Jam, Kalkulator Frekuensi CBM, Spare Parts, Fatigue & Rating"})
         ]})
       ]}),
 
       e.jsxs("div",{className:"flex items-center gap-2 flex-wrap sm:flex-nowrap",children:[
         e.jsxs("div",{className:"bg-slate-950/80 p-1 rounded-xl border border-slate-800 flex flex-wrap gap-1",children:[
           e.jsx("button",{type:"button",onClick:()=>setTbMode("TIMETABLE"),className:`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${tbMode==="TIMETABLE"?"bg-indigo-600 text-white shadow":"text-slate-400 hover:text-white"}`,children:"📊 Timetable"}),
+          e.jsx("button",{type:"button",onClick:()=>setTbMode("FREQ_SETUP"),className:`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${tbMode==="FREQ_SETUP"?"bg-indigo-600 text-white shadow":"text-slate-400 hover:text-white"}`,children:"🗺️ Frekuensi Rute"}),
           e.jsx("button",{type:"button",onClick:()=>setTbMode("MAINTENANCE"),className:`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${tbMode==="MAINTENANCE"?"bg-indigo-600 text-white shadow":"text-slate-400 hover:text-white"}`,children:"🛠️ Spare Parts"}),
           e.jsx("button",{type:"button",onClick:()=>setTbMode("STAFF_FATIGUE"),className:`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${tbMode==="STAFF_FATIGUE"?"bg-indigo-600 text-white shadow":"text-slate-400 hover:text-white"}`,children:"👨‍✈️ Staf & Fatigue"}),
           e.jsx("button",{type:"button",onClick:()=>setTbMode("RATING_TIKETS"),className:`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${tbMode==="RATING_TIKETS"?"bg-indigo-600 text-white shadow":"text-slate-400 hover:text-white"}`,children:"🌟 Rating & Tiket"}),
@@ -418,6 +440,83 @@ line-height: 1;
           ]})
         ]})
       })
+    ]}):
+
+    tbMode==="FREQ_SETUP"?e.jsxs("div",{className:"flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar",children:[
+      e.jsxs("div",{className:"bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-lg",children:[
+        e.jsxs("div",{children:[
+          e.jsx("h2",{className:"text-base font-black text-white flex items-center gap-2",children:[
+            "🗺️ Frekuensi Rute & Kalkulator Armada CBM"
+          ]}),
+          e.jsx("p",{className:"text-xs text-slate-400 mt-0.5",children:"Atur interval frekuensi (menit) sesuai keinginan Anda. Sistem CBM akan otomatis menghitung rekomendasi jumlah bus & sopir yang dibutuhkan."})
+        ]}),
+        e.jsxs("button",{type:"button",onClick:handleAutoDispatchAll,className:"bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow flex items-center gap-1.5",children:[
+          "⚡ Auto-Dispatch Sesuai Rekomendasi CBM"
+        ]})
+      ]}),
+
+      e.jsx("div",{className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4",children:(s.routes||[]).filter(r=>!r.isCharter).map(rt=>{
+        const curFreq=routeFrequencies[rt.id]||rt.headwayMinutes||30;
+        const cbmCalc=calcCbmFleetNeeded(rt.distance,curFreq);
+        const assignedBuses=(s.buses||[]).filter(b=>b.assignedRouteId===rt.id);
+        const isSufficient=assignedBuses.length>=cbmCalc.recommendedBuses;
+
+        return e.jsxs("div",{className:"bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3.5 hover:border-indigo-500/50 transition-all shadow-md relative overflow-hidden",children:[
+          e.jsxs("div",{className:"space-y-3",children:[
+            e.jsxs("div",{className:"flex justify-between items-start border-b border-slate-800 pb-2.5",children:[
+              e.jsxs("div",{children:[
+                e.jsx("h3",{className:"font-black text-sm text-white",children:rt.name}),
+                e.jsxs("span",{className:"text-[10px] text-slate-400 font-mono",children:[(rt.distance||0).toFixed(0)," km • ",rt.stops?rt.stops.length:0," Halte/Terminal"]})
+              ]}),
+              e.jsxs("span",{className:"text-xs font-mono font-black text-emerald-400 bg-emerald-950/80 border border-emerald-800 px-2 py-0.5 rounded-full",children:[rt.demandPercent||100,"% Deman"]})
+            ]}),
+
+            e.jsxs("div",{className:"bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2.5",children:[
+              e.jsx("label",{className:"block text-[10px] uppercase font-bold text-slate-400",children:"Seting Frekuensi Keberangkatan (Menit):"}),
+              e.jsxs("div",{className:"flex items-center gap-2",children:[
+                e.jsx("input",{type:"number",min:5,max:360,className:"w-24 bg-slate-900 border border-slate-700 text-amber-400 font-mono font-black text-sm rounded-lg px-2.5 py-1 focus:outline-none focus:border-amber-500",value:curFreq,onChange:ev=>handleSetRouteFreq(rt.id,ev.target.value)}),
+                e.jsx("span",{className:"text-xs font-bold text-slate-300",children:"Menit sekali"}),
+                e.jsxs("select",{className:"bg-slate-900 border border-slate-700 text-xs text-slate-300 rounded-lg px-2 py-1 cursor-pointer focus:outline-none ml-auto",value:curFreq,onChange:ev=>handleSetRouteFreq(rt.id,ev.target.value),children:[
+                  e.jsx("option",{value:15,children:"15m (Super Padat)"}),
+                  e.jsx("option",{value:20,children:"20m (Padat)"}),
+                  e.jsx("option",{value:30,children:"30m (Standar)"}),
+                  e.jsx("option",{value:45,children:"45m (Sedang)"}),
+                  e.jsx("option",{value:60,children:"60m (Longgar)"}),
+                  e.jsx("option",{value:120,children:"120m (Jarang)"})
+                ]})
+              ]})
+            ]}),
+
+            e.jsxs("div",{className:"bg-slate-950/80 p-3 rounded-xl border border-slate-800/80 space-y-2 text-xs",children:[
+              e.jsxs("div",{className:"flex justify-between items-center",children:[
+                e.jsx("span",{className:"text-slate-400 font-bold",children:"💡 Rekomendasi CBM:"}),
+                e.jsxs("span",{className:"font-mono font-black text-cyan-400 text-sm",children:[cbmCalc.recommendedBuses," Unit Bus"]})
+              ]}),
+              e.jsxs("div",{className:"flex justify-between items-center",children:[
+                e.jsx("span",{className:"text-slate-400 font-bold",children:"Status Saat Ini:"}),
+                e.jsxs("span",{className:`font-mono font-black text-xs px-2 py-0.5 rounded-full ${isSufficient?"bg-emerald-950 text-emerald-400 border border-emerald-800":"bg-amber-950 text-amber-400 border border-amber-800"}`,children:[
+                  assignedBuses.length," / ",cbmCalc.recommendedBuses," Bus",
+                  isSufficient?" (✅ Cukup)":" (⚠️ Kurang)"
+                ]})
+              ]}),
+              e.jsxs("div",{className:"flex justify-between items-center text-[10px] text-slate-500 font-mono pt-1 border-t border-slate-900",children:[
+                e.jsxs("span",{children:["Estimasi Tour PP: ",cbmCalc.roundTripM,"m"]}),
+                e.jsxs("span",{children:[cbmCalc.departuresPerDay," Trip/Hari"]})
+              ]})
+            ]})
+          ]}),
+
+          e.jsxs("div",{className:"flex gap-2 pt-1",children:[
+            e.jsxs("button",{type:"button",onClick:()=>{
+              const freeBus=(s.buses||[]).find(b=>!b.assignedRouteId&&b.status==="IDLE");
+              if(freeBus)o(freeBus.id);else alert("Tidak ada bus menganggur untuk rute ini!");
+            },className:"flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1",children:[
+              "+ Manual Dispatch"
+            ]}),
+            !isSufficient&&e.jsx("button",{type:"button",onClick:handleAutoDispatchAll,className:"px-3 bg-emerald-600 hover:bg-emerald-500 text-white py-1.5 rounded-xl text-xs font-bold transition-all shrink-0",children:"Auto-Fill"})
+          ]})
+        ]},rt.id);
+      })})
     ]}):
 
     tbMode==="MAINTENANCE"?e.jsxs("div",{className:"flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar",children:[
