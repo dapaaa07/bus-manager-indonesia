@@ -89,6 +89,110 @@ line-height: 1;
       });
     }
   },[s.routes,s.routeFrequencies]);
+  y.useEffect(()=>{
+    if(!s||!s.buses||!a)return;
+    const bogorBuses=(s.buses||[]).filter(b=>
+      b&&(b.model==="Avante H9 Super High Deck"||b.bodyModelId==="tentrem_avante_h9")&&
+      ((b.nickname&&b.nickname.includes("Bogor"))||(b.licensePlate&&b.licensePlate.startsWith("F ")))
+    );
+    if(bogorBuses.length<20){
+      a(prev=>{
+        const curBogorBuses=(prev.buses||[]).filter(b=>
+          b&&(b.model==="Avante H9 Super High Deck"||b.bodyModelId==="tentrem_avante_h9")&&
+          ((b.nickname&&b.nickname.includes("Bogor"))||(b.licensePlate&&b.licensePlate.startsWith("F ")))
+        );
+        if(curBogorBuses.length>=20)return prev;
+        
+        let updatedDepots=[...(prev.depots||[])];
+        let bogorDepot=updatedDepots.find(d=>
+          d&&(d.cityId==="BGR"||(d.name&&d.name.toLowerCase().includes("bogor")))
+        );
+        let bogorDepotId=bogorDepot?bogorDepot.id:"depot_luar_bogor_bgr";
+
+        if(!bogorDepot){
+          bogorDepot={
+            id:bogorDepotId,
+            cityId:"BGR",
+            name:"Depot Luar Bogor",
+            location:{lat:-6.605,lng:106.8089},
+            level:5,
+            maxCapacity:50,
+            buildings:[],
+            type:"RURAL",
+            isExternal:true,
+            hasWorkshop:true
+          };
+          updatedDepots.push(bogorDepot);
+        }else{
+          const dIdx=updatedDepots.findIndex(d=>d.id===bogorDepot.id);
+          if(dIdx!==-1){
+            updatedDepots[dIdx]={
+              ...updatedDepots[dIdx],
+              level:Math.max(updatedDepots[dIdx].level||1,5),
+              maxCapacity:Math.max(updatedDepots[dIdx].maxCapacity||5,50)
+            };
+          }
+        }
+
+        const needed=20-curBogorBuses.length;
+        const newBuses=[];
+        const colors=["#1E3A8A","#047857","#B91C1C","#7C3AED","#D97706","#0284C7","#059669","#DC2626","#9333EA","#EA580C"];
+
+        for(let i=1;i<=needed;i++){
+          const idxNum=curBogorBuses.length+i;
+          const plateNum=7000+idxNum;
+          newBuses.push({
+            id:`bus_avante_h9_bgr_${idxNum}_${Date.now()}_${i}`,
+            model:"Avante H9 Super High Deck",
+            bodyModelId:"tentrem_avante_h9",
+            bodyModelName:"New Avante H9 Super High Deck",
+            chassisModelName:"Hino RM280 Air Suspension",
+            capacity:36,
+            maxCapacity:36,
+            speed:105,
+            condition:100,
+            cleanliness:100,
+            fuel:100,
+            status:"IDLE",
+            assignedRouteId:null,
+            currentLocation:{lat:-6.605,lng:106.8089},
+            pathIndex:0,
+            earnings:0,
+            driverId:null,
+            secondaryDriverId:null,
+            kernetId:null,
+            color:colors[(idxNum-1)%colors.length],
+            colorName:"Executive VIP Metallic",
+            passengers:0,
+            licensePlate:`F ${plateNum} BGR`,
+            nickname:`Avante H9 #${idxNum} (Bogor)`,
+            facilities:{
+              seatType:"LEGREST",
+              hasWifi:true,
+              hasTV:true,
+              acType:"DOUBLE_BLOWER"
+            },
+            homeDepotId:bogorDepotId,
+            currentDepotId:bogorDepotId,
+            depotId:bogorDepotId,
+            isBareChassis:false,
+            type:"AKAP"
+          });
+        }
+
+        return {
+          ...prev,
+          depots:updatedDepots,
+          buses:[...(prev.buses||[]),...newBuses],
+          notifications:[
+            ...(prev.notifications||[]),
+            `🚌 [DEPOT BOGOR] 20 Unit Bus Avante H9 (36 Seat Legrest) berhasil ditambahkan ke Depot Luar Bogor!`
+          ]
+        };
+      });
+    }
+  },[s,a]);
+
 
   const P=y.useMemo(()=>{let W=[...s.passengersList||[]];if(d){const me=d.toLowerCase();W=W.filter(ie=>ie.name.toLowerCase().includes(me)||ie.busModel.toLowerCase().includes(me)||ie.licensePlate.toLowerCase().includes(me))}return g!=="ALL"&&(W=W.filter(me=>me.departureDay===g)),W},[s.passengersList,d,g]);
 
