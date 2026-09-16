@@ -1,0 +1,127 @@
+# 🚌 Bus Manager Indonesia (BMI)
+
+<div align="center">
+
+![Bus Manager Indonesia Banner](https://img.shields.io/badge/Bus%20Manager-Indonesia-emerald?style=for-the-badge&logo=bus&logoColor=white)
+
+[![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-badge)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Web%20%7C%20Android%20Capacitor-orange.svg?style=flat-badge)](https://github.com/dapaaa07/bus-manager-indonesia)
+[![React](https://img.shields.io/badge/Frontend-React%20%7C%20Vite%20%7C%20TailwindCSS-61DAFB.svg?style=flat-badge)](https://react.dev/)
+[![Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg?style=flat-badge)](#)
+
+**Simulasi Manajemen Perusahaan Otobus (PO) Terbaik di Indonesia**  
+*Inspirasi Mekanisme Game City Bus Manager (CBM) dengan Nuansa Khas Otomotif Indonesia!*
+
+</div>
+
+---
+
+## 🌟 Tentang Game
+
+**Bus Manager Indonesia (BMI)** adalah game simulasi tycoon & strategi manajemen Perusahaan Otobus (PO) yang dirancang khusus untuk membawa pengalaman mengelola armada bus di Indonesia secara mendalam. 
+
+Mulai dari mendirikan Kantor Pusat (HQ) dan Depot Luar Kota, membeli sasis & bodi bus karoseri ternama (Adiputro, Laksana, Tentrem, Morodadi Prima), mengatur frekuensi & jadwal keberangkatan 24 jam (*timetable CBM*), menugaskan Pengemudi & Kernet, hingga mengelola Rumah Makan PO di rest area!
+
+---
+
+## 🚀 Fitur-Fitur Utama
+
+### 🚌 1. Karoseri & Armada Bus Indonesia
+- **Karoseri Ternama**: Adiputro (Jetbus 3+ / 5 SHD/MHD), Laksana (SR2 / SR3 Suites Class), Tentrem (New Avante H8, H9, UHD, DD), dan Morodadi Prima.
+- **Varian Sasis**: Hino (RM280, RK8), Mercedes-Benz (OH 1626, O 500 RS 1836), Scania, dan Volvo.
+- **Kapasitas & Fasilitas**: Konfigurasi Regular, Legrest Executive VIP (36 Seat), hingga Sleeper Suites Class.
+- **Modifikasi & Kustomisasi**: Bebas atur livery, nomor polisi (Plat K, F, B, D, E, H, AA, dll), AC, WiFi, TV, dan klakson Basuri.
+
+### ⚡ 2. Mekanisme Dispatch & Timetable Gaya City Bus Manager (CBM)
+- **Timetable Matrix Grid 24 Jam**: Pantau seluruh jadwal perjalanan bus jam demi jam dalam format matriks intuitif.
+- **Frekuensi Rute Kustom**: Sesuaikan interval keberangkatan bus (misal: 15, 20, 30, 45, 60 menit sekali) sesuai keinginan Anda.
+- **Kalkulator Rekomendasi Armada CBM**: Sistem secara otomatis menghitung estimasi waktu tempuh (*round trip*), jumlah unit bus & pengemudi yang dibutuhkan agar tidak ada *headway gap*.
+- **Smart Auto-Dispatch Center**: Sekali klik untuk mengalokasikan bus idle, sopir, dan kernet secara otomatis sesuai rekomendasi CBM.
+
+### 🎫 3. Indikator Tiket Terjual & Performa Armada
+- **Performa Terjual Real-Time**: Pantau jumlah tiket terjual, *Load Factor* (%), dan total pendapatan omset (Rp) langsung pada kartu timetable, daftar bus, dan detail trip.
+- **Ekonomi & Penumpang Dinamis**: Tingkat kepuasan penumpang dipengaruhi oleh ketepatan waktu, kebersihan bus, kenyamanan fasilitas (Legrest/Sleeper), dan harga tiket.
+
+### 🗺️ 4. Peta Interaktif & Depot Luar Kota
+- **Peta Rute Indonesia**: Meliputi kota-kota di Pulau Jawa, Sumatera, dan Bali lengkap dengan halte, terminal, dan koordinat nyata.
+- **Feri Penyeberangan**: Rute Lintas Pulau via Kapal Feri Penyeberangan Merak - Bakauheni dan Ketapang - Gilimanuk.
+- **Kantor Pusat & Depot Luar**: Bangun garasi bus, bengkel (*workshop*), mess pengemudi, stasiun pengisian bahan bakar (SPBU), dan stasiun cuci bus.
+
+### 🍲 5. Rest Area & Rumah Makan PO (RM PO Kita)
+- Kelola fasilitas Rumah Makan khusus armada PO Anda di tempat peristirahatan.
+- Sediakan layanan katering *snackbox*, prasmanan, dan tempat istirahat penumpang untuk menambah omset pemasukan sampingan PO.
+
+---
+
+## 🛠️ Teknologi yang Digunakan
+
+- **Frontend**: [React.js](https://react.dev/) + [Vite](https://vitejs.dev/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) + Custom Glassmorphism UI
+- **Peta & Visualisasi**: Leaflet / Custom Map Engine
+- **Mobile Engine**: [Capacitor](https://capacitorjs.com/) (Build ke Android APK Native)
+- **State Management & Persistence**: LocalStorage Auto-Save Engine (`bus_tycoon_autosave_v1`)
+
+---
+
+## 📥 Panduan Instalasi & Jalankan Lokal
+
+### Prasyarat
+- [Node.js](https://nodejs.org/) (Versi 18 atau lebih baru)
+- NPM / Yarn
+
+### Langkah-langkah
+1. **Clone Repository**:
+   ```bash
+   git clone https://github.com/dapaaa07/bus-manager-indonesia.git
+   cd bus-manager-indonesia
+   ```
+
+2. **Install Dependensi**:
+   ```bash
+   npm install
+   ```
+
+3. **Jalankan Server Pengembang (Development Mode)**:
+   ```bash
+   npm run dev
+   ```
+   Aplikasi akan berjalan di `http://localhost:8080` (atau port Vite yang sesuai).
+
+4. **Sinkronisasi Aplikasi Android (Capacitor)**:
+   ```bash
+   npx cap sync
+   ```
+
+---
+
+## 📁 Struktur Direktori Utama
+
+```
+bus-manager-indonesia/
+├── assets/                  # Bundle JavaScript & Asset Terkompilasi
+├── public/                  # Static Public Assets
+├── android/                 # Project Native Android Capacitor
+├── src/                     # Source Code React Component (Jika Ada)
+├── capacitor.config.json    # Konfigurasi Capacitor Android
+├── package.json             # Dependensi & Script Project
+└── README.md                # Dokumentasi Utama Game
+```
+
+---
+
+## 📄 Lisensi & Kontribusi
+
+Proyek ini dikembangkan secara independen untuk komunitas pecinta bus & game simulasi manajemen di Indonesia.
+
+- **Lisensi**: MIT License
+- **Kontribusi**: Pull Request (PR) & laporan bug sangat diterima untuk menyempurnakan fitur game!
+
+---
+
+<div align="center">
+
+**Dikembangkan dengan ❤️ untuk Komunitas Bus Simulator & Otobus Indonesia!**
+
+[⭐ Star Repository Ini](https://github.com/dapaaa07/bus-manager-indonesia) • [🐛 Laporkan Bug](https://github.com/dapaaa07/bus-manager-indonesia/issues)
+
+</div>
