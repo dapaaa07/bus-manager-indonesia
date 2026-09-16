@@ -69,7 +69,12 @@ line-height: 1;
   const[tbMode,setTbMode]=y.useState("TIMETABLE");
   const[grpMode,setGrpMode]=y.useState("ROUTE");
   const[selTrip,setSelTrip]=y.useState(null);
-  const[editingRouteConfig,setEditingRouteConfig]=y.useState(null);
+  const[selectedBusMaint,setSelectedBusMaint]=y.useState(null);
+
+  const spareParts=(s&&s.sparePartsStock)||{oil:12,brakePads:10,tires:8,batteries:5,filters:15};
+  const facilities=(s&&s.depotFacilities)||{workshopBays:2,washBays:1,sparePartsWarehouse:2,staffLounge:1,serviceCenter:1};
+  const ticketPrices=(s&&s.ticketPricing)||{singleMultiplier:1.0,dayPassPrice:45000,subPassPrice:250000};
+  const overallRating=s.passengerRating||4.8;
 
   const P=y.useMemo(()=>{let W=[...s.passengersList||[]];if(d){const me=d.toLowerCase();W=W.filter(ie=>ie.name.toLowerCase().includes(me)||ie.busModel.toLowerCase().includes(me)||ie.licensePlate.toLowerCase().includes(me))}return g!=="ALL"&&(W=W.filter(me=>me.departureDay===g)),W},[s.passengersList,d,g]);
 
@@ -180,37 +185,106 @@ line-height: 1;
     });
   };
 
+  const handleBuyParts=(type,price,qty=5)=>{
+    a(prev=>{
+      const cost=price*qty;
+      if((prev.money||0)<cost){
+        alert(`Saldo tidak mencukupi untuk membeli ${qty} unit spare parts (Butuh Rp ${cost.toLocaleString("id-ID")})`);
+        return prev;
+      }
+      const curStock=prev.sparePartsStock||{oil:10,brakePads:10,tires:8,batteries:5,filters:12};
+      const updatedParts={...curStock,[type]:(curStock[type]||0)+qty};
+      return{
+        ...prev,
+        money:(prev.money||0)-cost,
+        sparePartsStock:updatedParts,
+        notifications:[`📦 [GUDANG SPARE PARTS CBM] Berhasil membeli ${qty} unit ${type.toUpperCase()} seharga Rp ${cost.toLocaleString("id-ID")}`,...(prev.notifications||[])]
+      };
+    });
+  };
+
+  const handleWashSingleBus=bId=>{
+    a(prev=>{
+      const cost=50000;
+      if((prev.money||0)<cost){
+        alert("Saldo tidak cukup untuk mencuci bus (Rp 50.000)");
+        return prev;
+      }
+      const updatedBuses=prev.buses.map(b=>b.id===bId?{...b,cleanlinessPercent:100}:b);
+      return{
+        ...prev,
+        money:(prev.money||0)-cost,
+        buses:updatedBuses,
+        notifications:[`🧼 [CUCI BUS CBM] Armada bus berhasil dicuci kinclong 100%!`,...(prev.notifications||[])]
+      };
+    });
+  };
+
+  const handleRepairBusComponent=(bId,compKey,partKey,partName)=>{
+    a(prev=>{
+      const curStock=prev.sparePartsStock||{oil:10,brakePads:10,tires:8,batteries:5,filters:12};
+      if((curStock[partKey]||0)<=0){
+        alert(`Stok ${partName} di gudang habis! Silakan beli spare parts di menu Gudang CBM terlebih dahulu.`);
+        return prev;
+      }
+      const updatedParts={...curStock,[partKey]:curStock[partKey]-1};
+      const updatedBuses=prev.buses.map(b=>{
+        if(b.id===bId){
+          const curComp=b.components||{engine:95,transmission:92,brakes:88,tires:85,electrical:90};
+          return{...b,components:{...curComp,[compKey]:100}};
+        }
+        return b;
+      });
+      return{
+        ...prev,
+        sparePartsStock:updatedParts,
+        buses:updatedBuses,
+        notifications:[`🛠️ [BENGKEL CBM] Komponen ${compKey.toUpperCase()} bus berhasil diganti spare part baru (100% Fit)!`,...(prev.notifications||[])]
+      };
+    });
+  };
+
+  const handleUpgradeFacility=(facKey,cost)=>{
+    a(prev=>{
+      if((prev.money||0)<cost){
+        alert(`Saldo tidak mencukupi untuk upgrade fasilitas (Butuh Rp ${cost.toLocaleString("id-ID")})`);
+        return prev;
+      }
+      const curFac=prev.depotFacilities||{workshopBays:2,washBays:1,sparePartsWarehouse:2,staffLounge:1,serviceCenter:1};
+      const updatedFac={...curFac,[facKey]:(curFac[facKey]||1)+1};
+      return{
+        ...prev,
+        money:(prev.money||0)-cost,
+        depotFacilities:updatedFac,
+        notifications:[`🏢 [DEPOT CBM] Fasilitas ${facKey.toUpperCase()} berhasil ditingkatkan ke Level ${updatedFac[facKey]}!`,...(prev.notifications||[])]
+      };
+    });
+  };
+
   return e.jsxs("div",{className:"flex flex-col h-full bg-slate-950 text-white overflow-hidden font-sans",children:[
     e.jsxs("div",{className:"px-4 py-3 bg-slate-900/90 border-b border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 relative z-20 shadow-md",children:[
       e.jsxs("div",{className:"flex items-center gap-3",children:[
         e.jsx("div",{className:"p-2 bg-indigo-500/20 rounded-xl border border-indigo-500/30 text-indigo-400 shadow-inner",children:e.jsx(Qi,{size:22})}),
         e.jsxs("div",{children:[
           e.jsx("h1",{className:"text-base sm:text-lg font-black tracking-tight leading-none text-white flex items-center gap-2",children:[
-            "Timetable & Dispatch Center",
-            e.jsx("span",{className:"text-[9px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider",children:"City Bus Manager Engine"})
+            "City Bus Manager Hub",
+            e.jsx("span",{className:"text-[9px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider",children:"Full CBM System"})
           ]}),
-          e.jsx("p",{className:"text-slate-400 text-[10px] sm:text-xs font-medium mt-0.5",children:"Grafik matriks jadwal 24 jam, pengaturan frekuensi, & Smart Auto-Dispatch CBM"})
+          e.jsx("p",{className:"text-slate-400 text-[10px] sm:text-xs font-medium mt-0.5",children:"Timetable 24 Jam, Bengkel Spare Parts, Staf Fatigue, Rating 5★, & Depot CBM"})
         ]})
       ]}),
 
       e.jsxs("div",{className:"flex items-center gap-2 flex-wrap sm:flex-nowrap",children:[
-        e.jsxs("div",{className:"bg-slate-950/80 p-1 rounded-xl border border-slate-800 flex gap-1",children:[
-          e.jsxs("button",{type:"button",onClick:()=>setTbMode("TIMETABLE"),className:`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${tbMode==="TIMETABLE"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
-            "📊 Timetable Grid"
-          ]}),
-          e.jsxs("button",{type:"button",onClick:()=>setTbMode("FREQ_SETUP"),className:`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${tbMode==="FREQ_SETUP"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
-            "🗺️ Frekuensi Rute"
-          ]}),
-          e.jsxs("button",{type:"button",onClick:()=>setTbMode("AUTODISPATCH"),className:`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${tbMode==="AUTODISPATCH"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
-            "⚡ Auto-Dispatch"
-          ]}),
-          e.jsxs("button",{type:"button",onClick:()=>setTbMode("MANIFEST"),className:`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${tbMode==="MANIFEST"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
-            "📋 Manifes"
-          ]})
+        e.jsxs("div",{className:"bg-slate-950/80 p-1 rounded-xl border border-slate-800 flex flex-wrap gap-1",children:[
+          e.jsx("button",{type:"button",onClick:()=>setTbMode("TIMETABLE"),className:`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${tbMode==="TIMETABLE"?"bg-indigo-600 text-white shadow":"text-slate-400 hover:text-white"}`,children:"📊 Timetable"}),
+          e.jsx("button",{type:"button",onClick:()=>setTbMode("MAINTENANCE"),className:`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${tbMode==="MAINTENANCE"?"bg-indigo-600 text-white shadow":"text-slate-400 hover:text-white"}`,children:"🛠️ Spare Parts"}),
+          e.jsx("button",{type:"button",onClick:()=>setTbMode("STAFF_FATIGUE"),className:`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${tbMode==="STAFF_FATIGUE"?"bg-indigo-600 text-white shadow":"text-slate-400 hover:text-white"}`,children:"👨‍✈️ Staf & Fatigue"}),
+          e.jsx("button",{type:"button",onClick:()=>setTbMode("RATING_TIKETS"),className:`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${tbMode==="RATING_TIKETS"?"bg-indigo-600 text-white shadow":"text-slate-400 hover:text-white"}`,children:"🌟 Rating & Tiket"}),
+          e.jsx("button",{type:"button",onClick:()=>setTbMode("DEPOT_FINANCE"),className:`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${tbMode==="DEPOT_FINANCE"?"bg-indigo-600 text-white shadow":"text-slate-400 hover:text-white"}`,children:"🏢 Fasilitas Depot"})
         ]}),
 
-        e.jsxs("button",{type:"button",onClick:handleAutoDispatchAll,className:"bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-black transition-all shadow-lg shadow-emerald-900/30 flex items-center gap-1.5 animate-pulse",children:[
-          "⚡ Auto-Dispatch Semua"
+        e.jsxs("button",{type:"button",onClick:handleAutoDispatchAll,className:"bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-3 py-1.5 rounded-xl text-xs font-black transition-all shadow-md flex items-center gap-1.5",children:[
+          "⚡ Auto-Dispatch"
         ]})
       ]})
     ]}),
@@ -317,7 +391,7 @@ line-height: 1;
                     ]})
                   ]}),
 
-                  e.jsxs("div",{className:"flex-1 relative min-h-[60px] p-1 bg-slate-950/30 flex items-center",children:[
+                  e.jsx("div",{className:"flex-1 relative min-h-[60px] p-1 bg-slate-950/30 flex items-center",children:[
                     hoursArr.map(hr=>e.jsx("div",{className:"absolute top-0 bottom-0 border-r border-slate-800/40 pointer-events-none",style:{left:`${(hr/24)*100}%`,width:`${(1/24)*100}%`}},hr)),
                     !B.departureTime?e.jsx("div",{className:"text-[10px] text-slate-600 italic px-4 font-mono",children:"Bus tidak memiliki jadwal keberangkatan aktif (IDLE di garasi)"}):
                     (()=>{
@@ -346,87 +420,217 @@ line-height: 1;
       })
     ]}):
 
-    tbMode==="FREQ_SETUP"?e.jsxs("div",{className:"flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar",children:[
-      e.jsxs("div",{className:"bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 shadow-lg",children:[
+    tbMode==="MAINTENANCE"?e.jsxs("div",{className:"flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar",children:[
+      e.jsxs("div",{className:"bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-lg",children:[
         e.jsxs("div",{children:[
           e.jsx("h2",{className:"text-base font-black text-white flex items-center gap-2",children:[
-            "🗺️ Pengaturan Frekuensi Rute & Timetable CBM"
+            "🛠️ Gudang Spare Parts & Bengkel 5 Komponen CBM"
           ]}),
-          e.jsx("p",{className:"text-xs text-slate-400 mt-0.5",children:"Atur Jam Operasional, Frekuensi (Headway), dan Jam Sibuk per rute untuk kalkulasi otomatis armada CBM"})
+          e.jsx("p",{className:"text-xs text-slate-400 mt-0.5",children:"Kelola stok Suku Cadang gudang & lakukan perawatan Mesin, Transmisi, Rem, Ban, Kelistrikan, serta Cuci Bus"})
         ]}),
-        e.jsxs("button",{type:"button",onClick:handleAutoDispatchAll,className:"bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5",children:[
-          "⚡ Jalankan Auto-Dispatch"
+        e.jsxs("div",{className:"flex gap-2",children:[
+          e.jsxs("button",{type:"button",onClick:()=>handleBuyParts("oil",350000,5),className:"bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow",children:["+5 Oli Engine"]}),
+          e.jsxs("button",{type:"button",onClick:()=>handleBuyParts("tires",1500000,4),className:"bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow",children:["+4 Ban Baru"]}),
+          e.jsxs("button",{type:"button",onClick:()=>handleBuyParts("brakePads",600000,5),className:"bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow",children:["+5 Kampas Rem"]})
         ]})
       ]}),
 
-      e.jsx("div",{className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4",children:(s.routes||[]).filter(r=>!r.isCharter).map(rt=>{
-        const assignedBuses=(s.buses||[]).filter(b=>b.assignedRouteId===rt.id);
-        const estTours=Math.max(4,Math.floor(16/(rt.headwayMinutes||30/60)));
-        return e.jsxs("div",{className:"bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3 hover:border-indigo-500/50 transition-all shadow-md",children:[
-          e.jsxs("div",{className:"space-y-2",children:[
-            e.jsxs("div",{className:"flex justify-between items-start",children:[
-              e.jsxs("div",{children:[
-                e.jsx("h3",{className:"font-black text-sm text-white",children:rt.name}),
-                e.jsxs("span",{className:"text-[10px] text-slate-400 font-mono",children:[(rt.distance||0).toFixed(0)," km • ",rt.stops?rt.stops.length:0," Halte/Terminal"]})
-              ]}),
-              e.jsxs("span",{className:"text-xs font-mono font-black text-emerald-400 bg-emerald-950/80 border border-emerald-800 px-2 py-0.5 rounded-full",children:[rt.demandPercent||100,"% Deman"]})
-            ]}),
+      e.jsxs("div",{className:"grid grid-cols-2 sm:grid-cols-5 gap-3",children:[
+        e.jsxs("div",{className:"bg-slate-900/80 border border-slate-800 p-3 rounded-xl shadow text-center",children:[
+          e.jsx("span",{className:"text-[10px] text-slate-400 uppercase font-bold block",children:"🛢️ Oli Mesin"}),
+          e.jsxs("span",{className:"text-xl font-mono font-black text-amber-400",children:[spareParts.oil||0," Unit"]})
+        ]}),
+        e.jsxs("div",{className:"bg-slate-900/80 border border-slate-800 p-3 rounded-xl shadow text-center",children:[
+          e.jsx("span",{className:"text-[10px] text-slate-400 uppercase font-bold block",children:"🛑 Kampas Rem"}),
+          e.jsxs("span",{className:"text-xl font-mono font-black text-emerald-400",children:[spareParts.brakePads||0," Unit"]})
+        ]}),
+        e.jsxs("div",{className:"bg-slate-900/80 border border-slate-800 p-3 rounded-xl shadow text-center",children:[
+          e.jsx("span",{className:"text-[10px] text-slate-400 uppercase font-bold block",children:"🛞 Ban Baru"}),
+          e.jsxs("span",{className:"text-xl font-mono font-black text-cyan-400",children:[spareParts.tires||0," Unit"]})
+        ]}),
+        e.jsxs("div",{className:"bg-slate-900/80 border border-slate-800 p-3 rounded-xl shadow text-center",children:[
+          e.jsx("span",{className:"text-[10px] text-slate-400 uppercase font-bold block",children:"⚡ Aki Kelistrikan"}),
+          e.jsxs("span",{className:"text-xl font-mono font-black text-purple-400",children:[spareParts.batteries||0," Unit"]})
+        ]}),
+        e.jsxs("div",{className:"bg-slate-900/80 border border-slate-800 p-3 rounded-xl shadow text-center",children:[
+          e.jsx("span",{className:"text-[10px] text-slate-400 uppercase font-bold block",children:"🌪️ Filter Udara"}),
+          e.jsxs("span",{className:"text-xl font-mono font-black text-yellow-400",children:[spareParts.filters||0," Unit"]})
+        ]})
+      ]}),
 
-            e.jsxs("div",{className:"bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-1.5 text-xs text-slate-300",children:[
-              e.jsxs("div",{className:"flex justify-between",children:[
-                e.jsx("span",{className:"text-slate-500 font-bold",children:"Jam Operasional:"}),
-                e.jsx("span",{className:"font-mono font-bold text-amber-400",children:"05:00 - 22:00 WIB"})
-              ]}),
-              e.jsxs("div",{className:"flex justify-between",children:[
-                e.jsx("span",{className:"text-slate-500 font-bold",children:"Interval / Frekuensi:"}),
-                e.jsx("span",{className:"font-mono font-bold text-cyan-400",children:"Setiap 30 Menit"})
-              ]}),
-              e.jsxs("div",{className:"flex justify-between",children:[
-                e.jsx("span",{className:"text-slate-500 font-bold",children:"Armada Teralokasi:"}),
-                e.jsxs("span",{className:"font-mono font-bold text-emerald-400",children:[assignedBuses.length," Unit Bus"]})
-              ]})
+      e.jsx("div",{className:"grid grid-cols-1 md:grid-cols-2 gap-4",children:(s.buses||[]).map(B=>{
+        const comp=B.components||{engine:92,transmission:88,brakes:85,tires:80,electrical:94};
+        const clean=B.cleanlinessPercent!==void 0?B.cleanlinessPercent:95;
+        return e.jsxs("div",{className:"bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-md",children:[
+          e.jsxs("div",{className:"flex justify-between items-center border-b border-slate-800 pb-2",children:[
+            e.jsxs("div",{children:[
+              e.jsx("h3",{className:"font-black text-sm text-white",children:B.licensePlate}),
+              e.jsxs("span",{className:"text-[10px] text-slate-400 font-mono",children:[B.model," • ",B.nickname?`"${B.nickname}"`:"Standar"]})
+            ]}),
+            e.jsxs("button",{type:"button",onClick:()=>handleWashSingleBus(B.id),className:"bg-cyan-950 border border-cyan-800 hover:bg-cyan-900 text-cyan-300 px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1",children:[
+              "🧼 Cuci Bus (100%)"
             ]})
           ]}),
 
-          e.jsxs("div",{className:"flex gap-2 pt-1",children:[
-            e.jsxs("button",{type:"button",onClick:()=>{
-              const freeBus=(s.buses||[]).find(b=>!b.assignedRouteId&&b.status==="IDLE");
-              if(freeBus)o(freeBus.id);else alert("Tidak ada bus menganggur untuk rute ini!");
-            },className:"flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1",children:[
-              "+ Tambah Bus"
+          e.jsxs("div",{className:"space-y-1.5 text-xs font-mono",children:[
+            e.jsxs("div",{className:"flex justify-between items-center",children:[
+              e.jsx("span",{className:"text-slate-400",children:"🛢️ Mesin Engine:"}),
+              e.jsxs("div",{className:"flex items-center gap-2",children:[
+                e.jsxs("span",{className:comp.engine>80?"text-emerald-400":"text-rose-400",children:[comp.engine,"%"]}),
+                e.jsx("button",{type:"button",onClick:()=>handleRepairBusComponent(B.id,"engine","oil","Oli Mesin"),className:"text-[9px] bg-amber-950 border border-amber-800 text-amber-300 px-1.5 py-0.5 rounded font-sans font-bold",children:"Ganti Oli"})
+              ]})
             ]}),
-            e.jsx("button",{type:"button",onClick:()=>alert(`Rute ${rt.name}: Jam Operasional 05:00-22:00 WIB, Frekuensi 30 Menit. Total perkiraan ${estTours} keberangkatan per hari.`),className:"px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 py-1.5 rounded-xl text-xs font-bold transition-all",children:"Detail Shift"})
+            e.jsxs("div",{className:"flex justify-between items-center",children:[
+              e.jsx("span",{className:"text-slate-400",children:"🛑 Rem & Suspensi:"}),
+              e.jsxs("div",{className:"flex items-center gap-2",children:[
+                e.jsxs("span",{className:comp.brakes>80?"text-emerald-400":"text-rose-400",children:[comp.brakes,"%"]}),
+                e.jsx("button",{type:"button",onClick:()=>handleRepairBusComponent(B.id,"brakes","brakePads","Kampas Rem"),className:"text-[9px] bg-emerald-950 border border-emerald-800 text-emerald-300 px-1.5 py-0.5 rounded font-sans font-bold",children:"Ganti Rem"})
+              ]})
+            ]}),
+            e.jsxs("div",{className:"flex justify-between items-center",children:[
+              e.jsx("span",{className:"text-slate-400",children:"🛞 Kondisi Ban:"}),
+              e.jsxs("div",{className:"flex items-center gap-2",children:[
+                e.jsxs("span",{className:comp.tires>80?"text-emerald-400":"text-rose-400",children:[comp.tires,"%"]}),
+                e.jsx("button",{type:"button",onClick:()=>handleRepairBusComponent(B.id,"tires","tires","Ban Baru"),className:"text-[9px] bg-cyan-950 border border-cyan-800 text-cyan-300 px-1.5 py-0.5 rounded font-sans font-bold",children:"Ganti Ban"})
+              ]})
+            ]}),
+            e.jsxs("div",{className:"flex justify-between items-center",children:[
+              e.jsx("span",{className:"text-slate-400",children:"✨ Kebersihan Bodi:"}),
+              e.jsxs("span",{className:clean>80?"text-emerald-400":"text-amber-400",children:[clean,"% Clean"]})
+            ]})
           ]})
-        ]},rt.id);
+        ]},B.id);
       })})
     ]}):
 
-    tbMode==="AUTODISPATCH"?e.jsxs("div",{className:"flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar",children:[
-      e.jsxs("div",{className:"bg-gradient-to-r from-indigo-950/80 via-slate-900 to-teal-950/80 border border-indigo-500/30 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xl",children:[
-        e.jsxs("div",{className:"space-y-1",children:[
-          e.jsxs("div",{className:"flex items-center gap-2",children:[
-            e.jsx("span",{className:"px-2 py-0.5 bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 rounded-full text-[10px] font-mono font-black uppercase",children:"CBM SMART ENGINE"}),
-            e.jsx("h2",{className:"text-lg font-black text-white",children:"Dasbor Auto-Dispatch Armada"})
+    tbMode==="STAFF_FATIGUE"?e.jsxs("div",{className:"flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar",children:[
+      e.jsxs("div",{className:"bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-lg",children:[
+        e.jsxs("div",{children:[
+          e.jsx("h2",{className:"text-base font-black text-white flex items-center gap-2",children:[
+            "👨‍✈️ Manajemen Staf, Fatigue, & Ruang Istirahat CBM"
           ]}),
-          e.jsx("p",{className:"text-xs text-slate-300 max-w-xl",children:"Sistem Auto-Dispatch akan memindai bus idle dan pengemudi yang siap beroperasi, kemudian mengalokasikannya secara otomatis ke shift keberangkatan rute secara optimal."})
+          e.jsx("p",{className:"text-xs text-slate-400 mt-0.5",children:"Pantau beban kelelahan (fatigue) pengemudi & sediakan Ruang Istirahat (Staff Lounge) di Depot"})
         ]}),
-        e.jsxs("button",{type:"button",onClick:handleAutoDispatchAll,className:"bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-xl font-black text-sm shadow-xl shadow-emerald-900/30 transition-all flex items-center gap-2 shrink-0 animate-bounce",children:[
-          "⚡ Auto-Dispatch Sekarang"
+        e.jsxs("button",{type:"button",onClick:()=>{
+          a(prev=>{
+            const updatedStaff=(prev.staff||[]).map(st=>({...st,fatigue:0}));
+            return{...prev,staff:updatedStaff,notifications:[`☕ [STAFF LOUNGE CBM] Seluruh staf telah beristirahat & segar 100%!`,...(prev.notifications||[])]};
+          });
+        },className:"bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow flex items-center gap-1.5",children:[
+          "☕ Istirahatkan Seluruh Staf"
         ]})
       ]}),
 
-      e.jsxs("div",{className:"grid grid-cols-1 sm:grid-cols-3 gap-4",children:[
-        e.jsxs("div",{className:"bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-1 shadow-md",children:[
-          e.jsx("span",{className:"text-[10px] text-slate-400 font-bold uppercase tracking-wider",children:"Bus Menganggur (Garasi)"}),
-          e.jsxs("div",{className:"text-2xl font-mono font-black text-cyan-400",children:[(s.buses||[]).filter(b=>!b.isBareChassis&&(b.status==="IDLE"||!b.assignedRouteId)).length," Unit"]})
+      e.jsx("div",{className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4",children:(s.staff||[]).map(st=>{
+        const fat=st.fatigue||0;
+        return e.jsxs("div",{className:"bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-2.5 shadow-md",children:[
+          e.jsxs("div",{className:"flex justify-between items-start",children:[
+            e.jsxs("div",{children:[
+              e.jsx("h3",{className:"font-black text-sm text-white",children:st.name}),
+              e.jsxs("span",{className:"text-[10px] text-slate-400 uppercase font-mono font-bold",children:[st.type," • Gaji Rp ",(st.salary||3500000).toLocaleString("id-ID")]})
+            ]}),
+            e.jsx("span",{className:`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${st.assignedBusId?"bg-emerald-950 text-emerald-400 border border-emerald-800":"bg-slate-800 text-slate-400"}`,children:st.assignedBusId?"Bertugas":"Idle"})
+          ]}),
+
+          e.jsxs("div",{className:"space-y-1 text-xs font-mono",children:[
+            e.jsxs("div",{className:"flex justify-between",children:[
+              e.jsx("span",{className:"text-slate-400",children:"Tingkat Kelelahan (Fatigue):"}),
+              e.jsxs("span",{className:fat>70?"text-rose-400 font-bold":"text-emerald-400",children:[fat,"%"]})
+            ]}),
+            e.jsx("div",{className:"w-full h-1.5 bg-slate-950 rounded-full overflow-hidden flex",children:e.jsx("div",{className:`h-full rounded-full transition-all ${fat>70?"bg-rose-500":"bg-emerald-400"}`,style:{width:`${fat}%`}})})
+          ]})
+        ]},st.id);
+      })})
+    ]}):
+
+    tbMode==="RATING_TIKETS"?e.jsxs("div",{className:"flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar",children:[
+      e.jsxs("div",{className:"bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xl",children:[
+        e.jsxs("div",{className:"space-y-1",children:[
+          e.jsxs("div",{className:"flex items-center gap-2",children:[
+            e.jsx("span",{className:"text-2xl",children:"🌟"}),
+            e.jsxs("h2",{className:"text-lg font-black text-white",children:[overallRating.toFixed(1)," / 5.0 Rating Penumpang"]})
+          ]}),
+          e.jsx("p",{className:"text-xs text-slate-300",children:"Indeks kepuasan masyarakat berdasarkan ketepatan waktu, kebersihan bodi bus, kenyamanan AC/Wi-Fi, dan harga tiket CBM."})
         ]}),
-        e.jsxs("div",{className:"bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-1 shadow-md",children:[
-          e.jsx("span",{className:"text-[10px] text-slate-400 font-bold uppercase tracking-wider",children:"Pengemudi Rested (Siap)"}),
-          e.jsxs("div",{className:"text-2xl font-mono font-black text-emerald-400",children:[(s.staff||[]).filter(st=>st.type==="DRIVER"&&(!st.status||st.status==="IDLE")&&!st.assignedBusId).length," Orang"]})
+
+        e.jsxs("div",{className:"flex items-center gap-2 bg-slate-950 p-2 rounded-xl border border-slate-800",children:[
+          e.jsx("span",{className:"text-xs font-bold text-slate-400 pl-2",children:"Mult. Tarif Tiket:"}),
+          e.jsxs("select",{className:"bg-slate-900 border border-slate-700 text-white rounded-lg px-2.5 py-1 text-xs cursor-pointer focus:outline-none",value:ticketPrices.singleMultiplier,onChange:ev=>{
+            const val=Number(ev.target.value);
+            a(prev=>({...prev,ticketPricing:{...(prev.ticketPricing||{}),singleMultiplier:val},notifications:[`🎟️ [TARIF CBM] Multiplier harga tiket disesuaikan ke ${val}x!`,...(prev.notifications||[])]}));
+          },children:[
+            e.jsx("option",{value:0.8,children:"0.8x (Diskon Murah)"}),
+            e.jsx("option",{value:1.0,children:"1.0x (Tarif Standar)"}),
+            e.jsx("option",{value:1.2,children:"1.2x (Tarif VIP)"}),
+            e.jsx("option",{value:1.5,children:"1.5x (Tarif Premium)"})
+          ]})
+        ]})
+      ]}),
+
+      e.jsxs("div",{className:"grid grid-cols-1 md:grid-cols-3 gap-4",children:[
+        e.jsxs("div",{className:"bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-2 shadow-md",children:[
+          e.jsx("h3",{className:"font-black text-sm text-white",children:"🎟️ Tiket Sekali Jalan"}),
+          e.jsx("p",{className:"text-xs text-slate-400",children:"Tarif dasar per rute trayek antarkota"}),
+          e.jsxs("div",{className:"text-xl font-mono font-black text-emerald-400",children:[ticketPrices.singleMultiplier,"x Multiplier"]})
         ]}),
-        e.jsxs("div",{className:"bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-1 shadow-md",children:[
-          e.jsx("span",{className:"text-[10px] text-slate-400 font-bold uppercase tracking-wider",children:"Kernet Rested (Siap)"}),
-          e.jsxs("div",{className:"text-2xl font-mono font-black text-amber-400",children:[(s.staff||[]).filter(st=>st.type==="KERNET"&&(!st.status||st.status==="IDLE")&&!st.assignedBusId).length," Orang"]})
+        e.jsxs("div",{className:"bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-2 shadow-md",children:[
+          e.jsx("h3",{className:"font-black text-sm text-white",children:"🎫 Tiket Harian (Day Pass)"}),
+          e.jsx("p",{className:"text-xs text-slate-400",children:"Akses tak terbatas 24 jam seluruh rute"}),
+          e.jsxs("div",{className:"text-xl font-mono font-black text-cyan-400",children:["Rp ",(ticketPrices.dayPassPrice||45000).toLocaleString("id-ID")]})
+        ]}),
+        e.jsxs("div",{className:"bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-2 shadow-md",children:[
+          e.jsx("h3",{className:"font-black text-sm text-white",children:"💳 Subscription Pass (Bulanan)"}),
+          e.jsx("p",{className:"text-xs text-slate-400",children:"Langganan penumpang bulanan setia PO"}),
+          e.jsxs("div",{className:"text-xl font-mono font-black text-purple-400",children:["Rp ",(ticketPrices.subPassPrice||250000).toLocaleString("id-ID")]})
+        ]})
+      ]})
+    ]}):
+
+    tbMode==="DEPOT_FINANCE"?e.jsxs("div",{className:"flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar",children:[
+      e.jsxs("div",{className:"bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-lg",children:[
+        e.jsxs("div",{children:[
+          e.jsx("h2",{className:"text-base font-black text-white flex items-center gap-2",children:[
+            "🏢 Peningkatan Fasilitas Depot & Analitik Keuangan CBM"
+          ]}),
+          e.jsx("p",{className:"text-xs text-slate-400 mt-0.5",children:"Tingkatkan fasilitas Lini Bengkel, Tempat Cuci, Gudang, & Ruang Istirahat untuk efisiensi CBM"})
+        ]})
+      ]}),
+
+      e.jsx("div",{className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4",children:[
+        e.jsxs("div",{className:"bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-md",children:[
+          e.jsxs("div",{className:"flex justify-between items-start",children:[
+            e.jsxs("div",{children:[
+              e.jsx("h3",{className:"font-black text-sm text-white",children:"🛠️ Lini Bengkel (Workshop Bays)"}),
+              e.jsxs("span",{className:"text-[10px] text-slate-400 font-mono",children:["Level ",facilities.workshopBays||1]})
+            ]}),
+            e.jsxs("span",{className:"text-xs font-mono font-black text-amber-400",children:[facilities.workshopBays||1," Lini"]})
+          ]}),
+          e.jsx("p",{className:"text-xs text-slate-400",children:"Menentukan jumlah bus yang dapat diperbaiki mekanik secara bersamaan."}),
+          e.jsxs("button",{type:"button",onClick:()=>handleUpgradeFacility("workshopBays",15000000),className:"w-full bg-indigo-600 hover:bg-indigo-500 text-white py-1.5 rounded-xl text-xs font-bold transition-all shadow",children:["Upgrade Lini (Rp 15.000.000)"]})
+        ]}),
+
+        e.jsxs("div",{className:"bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-md",children:[
+          e.jsxs("div",{className:"flex justify-between items-start",children:[
+            e.jsxs("div",{children:[
+              e.jsx("h3",{className:"font-black text-sm text-white",children:"🧼 Stasiun Cuci Bus (Wash Bays)"}),
+              e.jsxs("span",{className:"text-[10px] text-slate-400 font-mono",children:["Level ",facilities.washBays||1]})
+            ]}),
+            e.jsxs("span",{className:"text-xs font-mono font-black text-cyan-400",children:[facilities.washBays||1," Stasiun"]})
+          ]}),
+          e.jsx("p",{className:"text-xs text-slate-400",children:"Meningkatkan kapasitas pencucian otomatis bodi bus di depot HQ."}),
+          e.jsxs("button",{type:"button",onClick:()=>handleUpgradeFacility("washBays",10000000),className:"w-full bg-indigo-600 hover:bg-indigo-500 text-white py-1.5 rounded-xl text-xs font-bold transition-all shadow",children:["Upgrade Stasiun (Rp 10.000.000)"]})
+        ]}),
+
+        e.jsxs("div",{className:"bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3 shadow-md",children:[
+          e.jsxs("div",{className:"flex justify-between items-start",children:[
+            e.jsxs("div",{children:[
+              e.jsx("h3",{className:"font-black text-sm text-white",children:"☕ Ruang Istirahat (Staff Lounge)"}),
+              e.jsxs("span",{className:"text-[10px] text-slate-400 font-mono",children:["Level ",facilities.staffLounge||1]})
+            ]}),
+            e.jsxs("span",{className:"text-xs font-mono font-black text-emerald-400",children:[facilities.staffLounge||1," Lounge"]})
+          ]}),
+          e.jsx("p",{className:"text-xs text-slate-400",children:"Mempercepat pemulihan tingkat kelelahan (fatigue) sopir & staf."}),
+          e.jsxs("button",{type:"button",onClick:()=>handleUpgradeFacility("staffLounge",8000000),className:"w-full bg-indigo-600 hover:bg-indigo-500 text-white py-1.5 rounded-xl text-xs font-bold transition-all shadow",children:["Upgrade Lounge (Rp 8.000.000)"]})
         ]})
       ]})
     ]}):
