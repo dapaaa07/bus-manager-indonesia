@@ -339,6 +339,84 @@ line-height: 1;
     });
   };
 
+  const handleTopUpEToll=(amount)=>{
+    if((s.money||0)<amount){alert("Saldo PO tidak mencukupi untuk top up E-Toll!");return;}
+    a(prev=>({
+      ...prev,
+      money:prev.money-amount,
+      eTollBalance:(prev.eTollBalance||5e6)+amount,
+      notifications:[...(prev.notifications||[]),`💳 [TOP UP E-TOLL] Berhasil mengisi saldo E-Toll sebesar +Rp ${amount.toLocaleString("id-ID")}!`]
+    }));
+  };
+
+  const handleSetFuelPolicy=(fuelType)=>{
+    a(prev=>({
+      ...prev,
+      fuelPolicy:fuelType,
+      notifications:[...(prev.notifications||[]),`⛽ [KEBIJAKAN BBM] PO kini menggunakan ${fuelType==="DEXLITE"?"Dexlite / Pertamina Dex (Mesin Awet & Tarikan Prima)":"Biosolar B35 (Ekonomis & Irit Biaya)"}!`]
+    }));
+  };
+
+  const handleAssignSopirBatangan=(driverId,busId)=>{
+    const drv=(s.staff||[]).find(st=>st.id===driverId);
+    const bus=(s.buses||[]).find(b=>b.id===busId);
+    if(!drv||!bus)return;
+
+    a(prev=>({
+      ...prev,
+      staff:(prev.staff||[]).map(st=>st.id===driverId?{...st,batanganBusId:busId,assignedBusId:busId}:st),
+      buses:(prev.buses||[]).map(b=>b.id===busId?{...b,batanganDriverId:driverId,driverId}:b),
+      notifications:[...(prev.notifications||[]),`🎖️ [SOPIR BATANGAN] ${drv.name} resmi ditetapkan sebagai Sopir Batangan bus ${bus.licensePlate}! Sinergi perawatan aktif.`]
+    }));
+  };
+
+  const handleAcceptCharterTender=(tender)=>{
+    const idleBuses=(s.buses||[]).filter(b=>!b.isBareChassis&&(b.status==="IDLE"||!b.assignedRouteId));
+    if(idleBuses.length<tender.busesNeeded){
+      alert(`Armada tidak cukup! Anda butuh minimal ${tender.busesNeeded} bus menganggur (IDLE) di garasi untuk tender ini.`);
+      return;
+    }
+
+    const assignedForCharter=idleBuses.slice(0,tender.busesNeeded);
+    const busIds=assignedForCharter.map(b=>b.id);
+
+    a(prev=>({
+      ...prev,
+      money:prev.money+tender.dpAmount,
+      activeCharters:[
+        ...(prev.activeCharters||[]),
+        {...tender,assignedBusIds:busIds,startedDay:prev.day||1,status:"ON_PROGRESS"}
+      ],
+      buses:(prev.buses||[]).map(b=>{
+        if(busIds.includes(b.id)){
+          return {...b,status:"CHARTERED",nickname:`Wisata: ${tender.badge}`};
+        }
+        return b;
+      }),
+      notifications:[...(prev.notifications||[]),`🏆 [TENDER WISATA] Kontrak "${tender.title}" dimulai! Uang Muka (DP) +Rp ${tender.dpAmount.toLocaleString("id-ID")} langsung cair di kas PO!`]
+    }));
+  };
+
+  const handleCompleteCharterTender=(tenderId)=>{
+    const ch=(s.activeCharters||[]).find(c=>c.id===tenderId);
+    if(!ch)return;
+    const pelunasan=ch.totalPayout-ch.dpAmount;
+
+    a(prev=>({
+      ...prev,
+      money:prev.money+pelunasan,
+      reputation:Math.min(100,(prev.reputation||50)+8),
+      activeCharters:(prev.activeCharters||[]).filter(c=>c.id!==tenderId),
+      buses:(prev.buses||[]).map(b=>{
+        if((ch.assignedBusIds||[]).includes(b.id)){
+          return {...b,status:"IDLE",nickname:b.nickname?b.nickname.replace(`Wisata: ${ch.badge}`,"").trim():""};
+        }
+        return b;
+      }),
+      notifications:[...(prev.notifications||[]),`🎉 [CHARTER SELESAI] Rombongan "${ch.title}" kembali dengan selamat! Pelunasan +Rp ${pelunasan.toLocaleString("id-ID")} cair & Reputasi +8!`]
+    }));
+  };
+
   const playBasuriSound=()=>{
     try{
       const AudioCtx=window.AudioContext||window.webkitAudioContext;
@@ -629,22 +707,31 @@ line-height: 1;
 
       e.jsxs("div",{className:"flex items-center gap-2 flex-wrap sm:flex-nowrap",children:[
         e.jsxs("div",{className:"bg-slate-950/80 p-1 rounded-xl border border-slate-800 flex gap-1",children:[
-          e.jsxs("button",{type:"button",onClick:()=>setTbMode("TIMETABLE"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${tbMode==="TIMETABLE"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
+          e.jsxs("button",{type:"button",onClick:()=>setTbMode("TIMETABLE"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0 ${tbMode==="TIMETABLE"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
             "📊 Timetable"
           ]}),
-          e.jsxs("button",{type:"button",onClick:()=>setTbMode("FREQ_SETUP"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${tbMode==="FREQ_SETUP"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
+          e.jsxs("button",{type:"button",onClick:()=>setTbMode("FREQ_SETUP"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0 ${tbMode==="FREQ_SETUP"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
             "🗺️ Frekuensi & Tarif"
           ]}),
-          e.jsxs("button",{type:"button",onClick:()=>setTbMode("AGENCIES"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${tbMode==="AGENCIES"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
+          e.jsxs("button",{type:"button",onClick:()=>setTbMode("CHARTER_OPS"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0 ${tbMode==="CHARTER_OPS"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
+            "🕌 Tender Wisata"
+          ]}),
+          e.jsxs("button",{type:"button",onClick:()=>setTbMode("BATANGAN"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0 ${tbMode==="BATANGAN"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
+            "👨‍✈️ Sopir Batangan"
+          ]}),
+          e.jsxs("button",{type:"button",onClick:()=>setTbMode("OPERATIONAL"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0 ${tbMode==="OPERATIONAL"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
+            "💳 E-Toll & BBM"
+          ]}),
+          e.jsxs("button",{type:"button",onClick:()=>setTbMode("AGENCIES"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0 ${tbMode==="AGENCIES"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
             "🏪 Loket Agen"
           ]}),
-          e.jsxs("button",{type:"button",onClick:()=>setTbMode("MUDIK_OPS"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${tbMode==="MUDIK_OPS"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
+          e.jsxs("button",{type:"button",onClick:()=>setTbMode("MUDIK_OPS"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0 ${tbMode==="MUDIK_OPS"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
             "🌙 Mudik & Sapu Jagat"
           ]}),
-          e.jsxs("button",{type:"button",onClick:()=>setTbMode("FLEET_MODS"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${tbMode==="FLEET_MODS"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
+          e.jsxs("button",{type:"button",onClick:()=>setTbMode("FLEET_MODS"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0 ${tbMode==="FLEET_MODS"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
             "🎨 Aksesoris Bus"
           ]}),
-          e.jsxs("button",{type:"button",onClick:()=>setTbMode("AUTODISPATCH"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${tbMode==="AUTODISPATCH"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
+          e.jsxs("button",{type:"button",onClick:()=>setTbMode("AUTODISPATCH"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shrink-0 ${tbMode==="AUTODISPATCH"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
             "⚡ Auto-Dispatch"
           ]})
         ]}),
@@ -913,6 +1000,215 @@ line-height: 1;
         ]},rt.id);
       })})
     ]}):
+
+    tbMode==="CHARTER_OPS"?(()=>{
+      const TENDERS=[
+        {id:"tender_wali_songo",title:"🕌 Rombongan Ziarah Wali Songo (5 Hari)",dest:"Cirebon - Demak - Kudus - Tuban - Surabaya",busesNeeded:3,durationDays:5,totalPayout:85e6,dpAmount:35e6,paxCount:120,badge:"Ziarah Akbar"},
+        {id:"tender_study_tour",title:"🎓 Study Tour SMA Jakarta - Yogyakarta (3 Hari)",dest:"Jakarta - Candi Prambanan - Malioboro",busesNeeded:2,durationDays:3,totalPayout:54e6,dpAmount:20e6,paxCount:88,badge:"Wisata Pelajar"},
+        {id:"tender_gathering_pabrik",title:"🏭 Family Gathering Pabrik Karawang - Pangandaran (2 Hari)",dest:"Karawang - Bandung - Pantai Pangandaran",busesNeeded:2,durationDays:2,totalPayout:32e6,dpAmount:12e6,paxCount:75,badge:"Corporate"},
+        {id:"tender_bali_overland",title:"🏝️ Bali Overland Tour Exclusive (6 Hari)",dest:"Jakarta - Banyuwangi - Feri Ketapang - Denpasar",busesNeeded:2,durationDays:6,totalPayout:68e6,dpAmount:28e6,paxCount:72,badge:"VIP Overland"}
+      ];
+      const activeList=s.activeCharters||[];
+
+      return e.jsxs("div",{className:"flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar",children:[
+        e.jsxs("div",{className:"bg-gradient-to-r from-teal-950/80 via-slate-900 to-indigo-950/80 border border-teal-500/30 rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl",children:[
+          e.jsxs("div",{className:"space-y-1",children:[
+            e.jsx("h2",{className:"text-base font-black text-white flex items-center gap-2",children:[
+              "🕌 Tender Charter Pariwisata & Ziarah Wali Songo"
+            ]}),
+            e.jsx("p",{className:"text-xs text-slate-300 max-w-xl",children:"Terima kontrak pesanan sewa bus borongan rombongan study tour & ziarah. Dapatkan Uang Muka (DP) langsung di awal dan pelunasan penuh saat trip tuntas!"})
+          ]}),
+          e.jsxs("div",{className:"bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-right",children:[
+            e.jsx("span",{className:"text-[10px] text-slate-400 font-bold uppercase",children:"Tender Aktif Berjalan"}),
+            e.jsxs("div",{className:"text-emerald-400 font-mono font-black text-sm",children:[activeList.length," Kontrak"]})
+          ]})
+        ]}),
+
+        activeList.length>0&&e.jsxs("div",{className:"space-y-2.5",children:[
+          e.jsx("h3",{className:"text-xs font-black text-amber-400 uppercase tracking-wider",children:"🚀 Kontrak Wisata yang Sedang Berjalan:"}),
+          e.jsx("div",{className:"grid grid-cols-1 md:grid-cols-2 gap-3",children:activeList.map(ch=>
+            e.jsxs("div",{className:"bg-slate-900/90 border border-teal-500/40 rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-md",children:[
+              e.jsxs("div",{className:"space-y-1.5",children:[
+                e.jsxs("div",{className:"flex justify-between items-start",children:[
+                  e.jsx("h4",{className:"font-black text-sm text-white",children:ch.title}),
+                  e.jsx("span",{className:"text-[10px] bg-teal-950 text-teal-300 border border-teal-800 px-2 py-0.5 rounded-full font-bold",children:ch.badge})
+                ]}),
+                e.jsxs("p",{className:"text-[11px] text-slate-400",children:["Rute Wisata: ",ch.dest]}),
+                e.jsxs("div",{className:"flex justify-between text-xs font-mono pt-1 text-slate-300",children:[
+                  e.jsxs("span",{children:["Armada: ",ch.assignedBusIds.length," Bus"]}),
+                  e.jsxs("span",{className:"text-emerald-400 font-bold",children:["Pelunasan: Rp ",(ch.totalPayout-ch.dpAmount).toLocaleString("id-ID")]})
+                ]})
+              ]}),
+              e.jsx("button",{type:"button",onClick:()=>handleCompleteCharterTender(ch.id),className:"w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-xl text-xs font-black transition-all shadow",children:"✓ Konfirmasi Rombongan Tiba & Cairkan Pelunasan"})
+            ]},ch.id)
+          )})
+        ]}),
+
+        e.jsx("div",{className:"grid grid-cols-1 md:grid-cols-2 gap-4",children:TENDERS.map(tnd=>{
+          const isTaken=activeList.some(c=>c.id===tnd.id);
+          return e.jsxs("div",{className:"bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-md",children:[
+            e.jsxs("div",{className:"space-y-2",children:[
+              e.jsxs("div",{className:"flex justify-between items-start border-b border-slate-800 pb-2.5",children:[
+                e.jsxs("div",{children:[
+                  e.jsx("h3",{className:"font-black text-sm text-white",children:tnd.title}),
+                  e.jsx("span",{className:"text-[10px] text-slate-400 font-mono",children:tnd.dest})
+                ]}),
+                e.jsx("span",{className:"text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800",children:tnd.badge})
+              ]}),
+
+              e.jsxs("div",{className:"bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2 text-xs",children:[
+                e.jsxs("div",{className:"flex justify-between items-center",children:[
+                  e.jsx("span",{className:"text-slate-400",children:"Kebutuhan Armada:"}),
+                  e.jsxs("span",{className:"font-mono font-bold text-cyan-400",children:[tnd.busesNeeded," Unit Bus IDLE"]})
+                ]}),
+                e.jsxs("div",{className:"flex justify-between items-center",children:[
+                  e.jsx("span",{className:"text-slate-400",children:"Durasi Sewa:"}),
+                  e.jsxs("span",{className:"font-mono font-bold text-white",children:[tnd.durationDays," Hari Wisata"]})
+                ]}),
+                e.jsxs("div",{className:"flex justify-between items-center text-[11px] pt-1 border-t border-slate-900",children:[
+                  e.jsx("span",{className:"text-slate-400",children:"Uang Muka (DP Langsung Cair):"}),
+                  e.jsxs("span",{className:"font-mono font-black text-emerald-400",children:["Rp ",tnd.dpAmount.toLocaleString("id-ID")]})
+                ]}),
+                e.jsxs("div",{className:"flex justify-between items-center text-[11px]",children:[
+                  e.jsx("span",{className:"text-slate-400",children:"Total Nilai Kontrak:"}),
+                  e.jsxs("span",{className:"font-mono font-black text-amber-400",children:["Rp ",tnd.totalPayout.toLocaleString("id-ID")]})
+                ]})
+              ]})
+            ]}),
+
+            e.jsx("button",{type:"button",disabled:isTaken,onClick:()=>handleAcceptCharterTender(tnd),className:`w-full py-2.5 rounded-xl text-xs font-black transition-all shadow ${isTaken?"bg-slate-800 text-slate-500 cursor-not-allowed":"bg-indigo-600 hover:bg-indigo-500 text-white"}`,children:isTaken?"✓ Sedang Dilayani PO":"Terima Tender & Ambil Uang Muka (DP)"})
+          ]},tnd.id);
+        })})
+      ]});
+    })():
+
+    tbMode==="BATANGAN"?(()=>{
+      const drivers=(s.staff||[]).filter(st=>st.type==="DRIVER");
+      const buses=(s.buses||[]).filter(b=>!b.isBareChassis);
+
+      const TRAIT_DATA={
+        TRAIT_BANTER:{name:"⚡ Sopir Banter (Artis Pantura)",desc:"Kecepatan +10%, penumpang muda puas, konsumsi BBM +20%",color:"text-amber-400"},
+        TRAIT_HALUS:{name:"🛡️ Sopir Halus & Santai",desc:"Rating bintang 5, BBM -15%, suspensi & bus awet",color:"text-emerald-400"},
+        TRAIT_TANGGUH:{name:"💪 Sopir Tangguh (Besi Tua)",desc:"Stamina tinggi rute jauh Sumatera/Jawa, jarang minta istirahat",color:"text-cyan-400"},
+        TRAIT_TELADAN:{name:"🌟 Sopir Teladan (Bintang PO)",desc:"Disiplin jam berangkat, on-time rate 99%",color:"text-purple-400"}
+      };
+      const traitKeys=Object.keys(TRAIT_DATA);
+
+      return e.jsxs("div",{className:"flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar",children:[
+        e.jsxs("div",{className:"bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl",children:[
+          e.jsxs("div",{className:"space-y-1",children:[
+            e.jsx("h2",{className:"text-base font-black text-white flex items-center gap-2",children:[
+              "👨‍✈️ Manajemen Kru: Driver Traits & Sistem Sopir Batangan"
+            ]}),
+            e.jsx("p",{className:"text-xs text-slate-400 max-w-xl",children:"Di Indonesia, seorang sopir biasanya memegang 1 unit bus tetap (Sopir Batangan). Pasangkan sopir dengan bus pegangannya untuk mengaktifkan bonus keawetan mesin dan kebersihan kabin!"})
+          ]}),
+          e.jsxs("div",{className:"bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-right",children:[
+            e.jsx("span",{className:"text-[10px] text-slate-400 font-bold uppercase",children:"Total Pengemudi PO"}),
+            e.jsxs("div",{className:"text-cyan-400 font-mono font-black text-sm",children:[drivers.length," Orang"]})
+          ]})
+        ]}),
+
+        e.jsx("div",{className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4",children:drivers.map(drv=>{
+          const traitKey=drv.trait||traitKeys[Math.abs(drv.name.length)%traitKeys.length];
+          const trait=TRAIT_DATA[traitKey]||TRAIT_DATA.TRAIT_HALUS;
+          const assignedBus=buses.find(b=>b.id===drv.batanganBusId||b.id===drv.assignedBusId);
+
+          return e.jsxs("div",{className:"bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-md",children:[
+            e.jsxs("div",{className:"space-y-2.5",children:[
+              e.jsxs("div",{className:"flex justify-between items-start border-b border-slate-800 pb-2.5",children:[
+                e.jsxs("div",{children:[
+                  e.jsx("h3",{className:"font-black text-sm text-white",children:drv.name}),
+                  e.jsxs("span",{className:"text-[10px] text-slate-400 font-mono",children:["Gaji: Rp ",(drv.salary||35e5).toLocaleString("id-ID"),"/bln"]})
+                ]}),
+                e.jsx("span",{className:`text-[10px] font-bold px-2 py-0.5 rounded-full ${drv.batanganBusId?"bg-amber-950 text-amber-300 border border-amber-800":"bg-slate-800 text-slate-400"}`,children:drv.batanganBusId?"Sopir Batangan":"Sopir Cadangan"})
+              ]}),
+
+              e.jsxs("div",{className:"bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2 text-xs",children:[
+                e.jsxs("div",{children:[
+                  e.jsx("span",{className:"text-[10px] text-slate-500 uppercase font-bold block",children:"Karakteristik (Driver Trait):"}),
+                  e.jsx("span",{className:`font-bold text-xs ${trait.color}`,children:trait.name}),
+                  e.jsx("p",{className:"text-[10px] text-slate-400 mt-0.5 leading-relaxed",children:trait.desc})
+                ]}),
+                e.jsxs("div",{className:"pt-2 border-t border-slate-900 flex justify-between items-center text-xs",children:[
+                  e.jsx("span",{className:"text-slate-400",children:"Bus Batangan Pegangan:"}),
+                  e.jsx("span",{className:"font-mono font-bold text-cyan-400",children:assignedBus?`${assignedBus.licensePlate} (${assignedBus.model})`:"Belum Ditetapkan"})
+                ]})
+              ]})
+            ]}),
+
+            e.jsxs("div",{className:"space-y-1.5 pt-1",children:[
+              e.jsx("label",{className:"block text-[10px] uppercase font-bold text-slate-400",children:"Pilih Bus Pegangan Tetap:"}),
+              e.jsxs("select",{value:drv.batanganBusId||"",onChange:ev=>handleAssignSopirBatangan(drv.id,ev.target.value),className:"w-full bg-slate-950 border border-slate-700 text-xs text-slate-300 rounded-xl px-3 py-2 cursor-pointer focus:outline-none focus:border-amber-500",children:[
+                e.jsx("option",{value:"",children:"-- Pilih Bus Pegangan --"}),
+                buses.map(b=>e.jsxs("option",{value:b.id,children:[b.licensePlate," • ",b.model]},b.id))
+              ]}),
+              drv.batanganBusId&&e.jsx("span",{className:"text-[9px] text-emerald-400 font-mono block text-center",children:"✨ Sinergi Batangan Aktif: Mesin 2x Awet & Kabin Bersih"})
+            ]})
+          ]},drv.id);
+        })})
+      ]});
+    })():
+
+    tbMode==="OPERATIONAL"?(()=>{
+      const eToll=s.eTollBalance||5e6;
+      const fuel=s.fuelPolicy||"BIOSOLAR";
+
+      return e.jsxs("div",{className:"flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar",children:[
+        e.jsxs("div",{className:"bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl",children:[
+          e.jsxs("div",{className:"space-y-1",children:[
+            e.jsx("h2",{className:"text-base font-black text-white flex items-center gap-2",children:[
+              "💳 Operasional Riil: Saldo E-Toll Trans Jawa & Kebijakan BBM"
+            ]}),
+            e.jsx("p",{className:"text-xs text-slate-400 max-w-xl",children:"Pastikan saldo kartu E-Toll PO selalu terisi agar bus tidak tertahan di gerbang tol Trans Jawa, dan pilih jenis bahan bakar solar yang sesuai strategi operasional Anda."})
+          ]}),
+          e.jsxs("div",{className:"bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-right",children:[
+            e.jsx("span",{className:"text-[10px] text-slate-400 font-bold uppercase",children:"Saldo Kartu E-Toll PO"}),
+            e.jsxs("div",{className:`font-mono font-black text-base ${eToll<5e5?"text-rose-400 animate-pulse":"text-emerald-400"}`,children:["Rp ",eToll.toLocaleString("id-ID")]})
+          ]})
+        ]}),
+
+        e.jsxs("div",{className:"grid grid-cols-1 md:grid-cols-2 gap-4",children:[
+          e.jsxs("div",{className:"bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3.5 shadow-md",children:[
+            e.jsxs("div",{className:"flex justify-between items-center border-b border-slate-800 pb-2.5",children:[
+              e.jsxs("h3",{className:"font-black text-sm text-white flex items-center gap-2",children:[
+                "💳 Saldo Kartu E-Toll PO",
+                e.jsx("span",{className:"text-[10px] text-cyan-400 font-mono font-normal",children:"(Trans Jawa Card)"})
+              ]}),
+              e.jsx("span",{className:`text-[10px] font-bold px-2 py-0.5 rounded-full ${eToll<5e5?"bg-rose-950 text-rose-300 border border-rose-800":"bg-emerald-950 text-emerald-300 border border-emerald-800"}`,children:eToll<5e5?"⚠️ Kritis (Perlu Top Up)":"✅ Aman"})
+            ]}),
+            e.jsx("p",{className:"text-xs text-slate-400 leading-relaxed",children:"Setiap bus yang melintasi tol Trans Jawa (Tol Cipali, Batang, Semarang, Solo, Surabaya) memotong saldo E-Toll sebesar Rp 150rb - Rp 450rb per rit perjalanan."}),
+            e.jsxs("div",{className:"bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2",children:[
+              e.jsx("span",{className:"text-[10px] text-slate-400 font-bold uppercase block",children:"Isi Ulang Saldo E-Toll Cepat:"}),
+              e.jsxs("div",{className:"grid grid-cols-3 gap-2",children:[
+                e.jsx("button",{type:"button",onClick:()=>handleTopUpEToll(1e6),className:"py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500 rounded-xl text-xs font-mono font-bold text-white transition-all",children:"+1 Jt"}),
+                e.jsx("button",{type:"button",onClick:()=>handleTopUpEToll(25e5),className:"py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500 rounded-xl text-xs font-mono font-bold text-white transition-all",children:"+2.5 Jt"}),
+                e.jsx("button",{type:"button",onClick:()=>handleTopUpEToll(5e6),className:"py-2 bg-emerald-950 hover:bg-emerald-900 border border-emerald-600 rounded-xl text-xs font-mono font-bold text-emerald-300 transition-all",children:"+5 Jt"})
+              ]})
+            ]})
+          ]}),
+
+          e.jsxs("div",{className:"bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3.5 shadow-md",children:[
+            e.jsxs("div",{className:"flex justify-between items-center border-b border-slate-800 pb-2.5",children:[
+              e.jsx("h3",{className:"font-black text-sm text-white",children:"⛽ Kebijakan Bahan Bakar (BBM Solar)"}),
+              e.jsx("span",{className:"text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800",children:fuel==="DEXLITE"?"Dexlite VIP":"Biosolar B35"})
+            ]}),
+            e.jsx("p",{className:"text-xs text-slate-400 leading-relaxed",children:"Pilihan bahan bakar mempengaruhi biaya per kilometer dan tingkat keawetan mesin/filter solar seluruh armada bus."}),
+            e.jsxs("div",{className:"grid grid-cols-2 gap-2.5 pt-1",children:[
+              e.jsxs("button",{type:"button",onClick:()=>handleSetFuelPolicy("BIOSOLAR"),className:`p-3 rounded-xl border text-left transition-all ${fuel==="BIOSOLAR"?"bg-amber-950/60 border-amber-500 text-amber-300 shadow-md":"bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"}`,children:[
+                e.jsx("div",{className:"font-black text-xs",children:"🟡 Biosolar B35"}),
+                e.jsx("div",{className:"text-[10px] font-mono mt-1",children:"Rp 6.800 / Liter"}),
+                e.jsx("div",{className:"text-[9px] text-slate-500 mt-1",children:"Hemat biaya 50%, mesin butuh sering ganti filter (+30% aus)."})
+              ]}),
+              e.jsxs("button",{type:"button",onClick:()=>handleSetFuelPolicy("DEXLITE"),className:`p-3 rounded-xl border text-left transition-all ${fuel==="DEXLITE"?"bg-cyan-950/60 border-cyan-500 text-cyan-300 shadow-md":"bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"}`,children:[
+                e.jsx("div",{className:"font-black text-xs",children:"🔵 Dexlite / Pertamina Dex"}),
+                e.jsx("div",{className:"text-[10px] font-mono mt-1",children:"Rp 14.500 / Liter"}),
+                e.jsx("div",{className:"text-[9px] text-slate-500 mt-1",children:"Mesin selalu bersih, tarikan enteng, minim resiko mogok (-70%)."})
+              ]})
+            ]})
+          ]})
+        ]})
+      ]});
+    })():
 
     tbMode==="AGENCIES"?(()=>{
       const TERMINALS=[

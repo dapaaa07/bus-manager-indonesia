@@ -61,6 +61,18 @@ Mulai dari mendirikan Kantor Pusat (HQ) dan Depot Luar Kota, membeli sasis & bod
 - Kelola fasilitas Rumah Makan khusus armada PO Anda di tempat peristirahatan.
 - Sediakan layanan katering *snackbox*, prasmanan, dan tempat istirahat penumpang untuk menambah omset pemasukan sampingan PO.
 
+### 🕌 6. Tender Charter Wisata & Ziarah Wali Songo
+- Kontrak sewa borongan pariwisata: Ziarah Wali Songo (5 hari), Study Tour Pelajar ke Jogja (3 hari), Employee Gathering Pabrik Cikarang (2 hari), dan Tour Bali Overland (6 hari).
+- Pembayaran DP instan langsung cair ke kas PO saat tender diterima, serta pelunasan kontrak penuh setelah masa charter tuntas.
+
+### 👨‍✈️ 7. Karakteristik Sopir & Sistem "Sopir Batangan"
+- **Driver Traits**: Setiap pengemudi memiliki karakter unik seperti *Banter Pantura* (+10% kepuasan kecepatan), *Halus & Nyaman* (+12% rating kenyamanan), *Tangguh & Hemat* (efisiensi BBM), dan *Teladan & Disiplin*.
+- **Sistem Sopir Batangan**: Tugaskan pengemudi ke armada bus pegangan tetap mereka untuk mendapatkan sinergi bonus pemeliharaan (+15% awet) dan kebersihan kabin terjaga.
+
+### 💳 8. Realisme Operasional: Saldo E-Toll Trans Jawa & Bahan Bakar (BBM)
+- **Kartu Multi-Trip E-Toll**: Pantau saldo kartu tol elektronik untuk perjalanan express via jalan tol Trans Jawa (Cikampek - Surabaya), lengkap dengan fitur top-up instan (+Rp 1.000.000, +Rp 2.500.000, +Rp 5.000.000).
+- **Kebijakan BBM (Fuel Policy)**: Pilihan antara *Biosolar B35 Subsidi* (biaya sangat hemat) dan *Pertamina Dexlite* (mesin lebih responsif, akselerasi optimal, dan mengurangi keausan sparepart).
+
 ---
 
 ## 🛠️ Teknologi yang Digunakan
