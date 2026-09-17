@@ -4,8 +4,8 @@
 
 ![Bus Manager Indonesia Banner](https://img.shields.io/badge/Bus%20Manager-Indonesia-emerald?style=for-the-badge&logo=bus&logoColor=white)
 
-[![Download APK](https://img.shields.io/badge/📱%20Download%20Android%20APK-v1.0.0-brightgreen.svg?style=for-the-badge&logo=android)](https://github.com/dapaaa07/bus-manager-indonesia/releases/download/v1.0.0/BusManagerIndonesia-v1.0.0.apk)
-[![GitHub Release](https://img.shields.io/github/v/release/dapaaa07/bus-manager-indonesia?style=for-the-badge&logo=github&color=blue)](https://github.com/dapaaa07/bus-manager-indonesia/releases/tag/v1.0.0)
+[![Download APK](https://img.shields.io/badge/📱%20Download%20Android%20APK-v1.1.0-brightgreen.svg?style=for-the-badge&logo=android)](https://github.com/dapaaa07/bus-manager-indonesia/releases/download/v1.1.0/BusManagerIndonesia-v1.1.0.apk)
+[![GitHub Release](https://img.shields.io/github/v/release/dapaaa07/bus-manager-indonesia?style=for-the-badge&logo=github&color=blue)](https://github.com/dapaaa07/bus-manager-indonesia/releases/tag/v1.1.0)
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-badge)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Web%20%7C%20Android%20Capacitor-orange.svg?style=flat-badge)](https://github.com/dapaaa07/bus-manager-indonesia)
@@ -22,6 +22,7 @@
 
 | Version | File Name | Size | Release Link | Direct Download |
 | :--- | :--- | :--- | :--- | :--- |
+| **v1.1.0** | `BusManagerIndonesia-v1.1.0.apk` | `14.8 MB` | [Release Page v1.1.0](https://github.com/dapaaa07/bus-manager-indonesia/releases/tag/v1.1.0) | [📥 Download APK](https://github.com/dapaaa07/bus-manager-indonesia/releases/download/v1.1.0/BusManagerIndonesia-v1.1.0.apk) |
 | **v1.0.0** | `BusManagerIndonesia-v1.0.0.apk` | `14.8 MB` | [Release Page v1.0.0](https://github.com/dapaaa07/bus-manager-indonesia/releases/tag/v1.0.0) | [📥 Download APK](https://github.com/dapaaa07/bus-manager-indonesia/releases/download/v1.0.0/BusManagerIndonesia-v1.0.0.apk) |
 
 ---
