@@ -277,6 +277,192 @@ line-height: 1;
     });
   };
 
+  const playBasuriSound=()=>{
+    try{
+      const AudioCtx=window.AudioContext||window.webkitAudioContext;
+      if(!AudioCtx)return;
+      const ctx=new AudioCtx();
+      const melody=[523.25,659.25,783.99,1046.5,880,783.99,1046.5];
+      let t=ctx.currentTime;
+      melody.forEach(freq=>{
+        const osc=ctx.createOscillator();
+        const gain=ctx.createGain();
+        osc.type="sawtooth";
+        osc.frequency.setValueAtTime(freq,t);
+        gain.gain.setValueAtTime(0.2,t);
+        gain.gain.exponentialRampToValueAtTime(0.01,t+0.18);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t+0.2);
+        t+=0.16;
+      });
+    }catch(err){console.warn("Audio error:",err);}
+  };
+
+  const handleSetRouteTarif=(rId,mode)=>{
+    a(prev=>{
+      const updatedModes={...(prev.routePricingMode||{}),[rId]:mode};
+      const updatedRoutes=(prev.routes||[]).map(rt=>{
+        if(rt.id!==rId)return rt;
+        const baseP=Math.round((rt.distance||100)*750);
+        let newPrice=baseP;
+        if(mode==="TBB")newPrice=Math.round(baseP*0.75);
+        else if(mode==="TBA")newPrice=Math.round(baseP*1.30);
+        else if(mode==="TUSLAH")newPrice=Math.round(baseP*1.75);
+        return {...rt,ticketPrice:newPrice};
+      });
+      return {...prev,routePricingMode:updatedModes,routes:updatedRoutes};
+    });
+  };
+
+  const handleRentAgency=(agId,name,cost)=>{
+    if((s.money||0)<cost){alert("Saldo PO tidak mencukupi untuk menyewa loket terminal ini!");return;}
+    a(prev=>({
+      ...prev,
+      money:prev.money-cost,
+      terminalAgencies:{
+        ...(prev.terminalAgencies||{}),
+        [agId]:{id:agId,name,level:1,balance:Math.floor(Math.random()*1500000)+500000,rentedAt:prev.day||1}
+      },
+      notifications:[...(prev.notifications||[]),`🏪 [LOKET AGEN] Berhasil menyewa Kios Loket di ${name}! Penjualan tiket meningkat.`]
+    }));
+  };
+
+  const handleUpgradeAgency=(agId,name,cost)=>{
+    if((s.money||0)<cost){alert("Saldo PO tidak mencukupi untuk upgrade loket terminal!");return;}
+    a(prev=>{
+      const cur=(prev.terminalAgencies&&prev.terminalAgencies[agId])||{id:agId,name,level:1,balance:0};
+      const nextLvl=Math.min(3,(cur.level||1)+1);
+      return {
+        ...prev,
+        money:prev.money-cost,
+        terminalAgencies:{
+          ...(prev.terminalAgencies||{}),
+          [agId]:{...cur,level:nextLvl}
+        },
+        notifications:[...(prev.notifications||[]),`⭐ [UPGRADE AGEN] Loket ${name} ditingkatkan ke Level ${nextLvl}! Daya serap penumpang melonjak.`]
+      };
+    });
+  };
+
+  const handleCollectAgencySetoran=(agId)=>{
+    const ag=(s.terminalAgencies&&s.terminalAgencies[agId]);
+    if(!ag||!ag.balance||ag.balance<=0){alert("Belum ada saldo setoran yang terkumpul di loket ini!");return;}
+    const amt=ag.balance;
+    a(prev=>({
+      ...prev,
+      money:prev.money+amt,
+      terminalAgencies:{
+        ...(prev.terminalAgencies||{}),
+        [agId]:{...ag,balance:0}
+      },
+      notifications:[...(prev.notifications||[]),`💰 [SETORAN AGEN] Berhasil mencairkan setoran ${ag.name} sebesar +Rp ${amt.toLocaleString("id-ID")}`]
+    }));
+  };
+
+  const handleCollectAllSetoran=()=>{
+    const ags=Object.values(s.terminalAgencies||{});
+    const total=ags.reduce((acc,it)=>acc+(it.balance||0),0);
+    if(total<=0){alert("Tidak ada saldo setoran yang terkumpul saat ini.");return;}
+    a(prev=>{
+      const updated={...prev.terminalAgencies};
+      Object.keys(updated).forEach(k=>{updated[k]={...updated[k],balance:0};});
+      return {
+        ...prev,
+        money:prev.money+total,
+        terminalAgencies:updated,
+        notifications:[...(prev.notifications||[]),`💰 [SETORAN MASSAL] Berhasil mencairkan seluruh setoran agen terminal sebesar +Rp ${total.toLocaleString("id-ID")}`]
+      };
+    });
+  };
+
+  const handleTriggerRoadIncident=()=>{
+    const activeBuses=(s.buses||[]).filter(b=>!b.isBareChassis&&b.assignedRouteId&&b.status!=="BROKEN_DOWN");
+    if(activeBuses.length===0){alert("Tidak ada armada bus yang sedang aktif bertugas di rute untuk simulasi insiden!");return;}
+    const target=activeBuses[Math.floor(Math.random()*activeBuses.length)];
+    a(prev=>({
+      ...prev,
+      buses:prev.buses.map(b=>b.id===target.id?{...b,status:"BROKEN_DOWN",breakdownReason:"Overheat Mesin & Ban Meletus di Tol Trans Jawa"}:b),
+      notifications:[...(prev.notifications||[]),`⚠️ [DARURAT LAPANGAN] Bus ${target.licensePlate} (${target.model}) MOGOK di jalan tol! Penumpang butuh Bus Sapu Jagat!`]
+    }));
+  };
+
+  const handleDispatchSapuJagat=(brokenBusId)=>{
+    const brokenBus=(s.buses||[]).find(b=>b.id===brokenBusId);
+    if(!brokenBus)return;
+    const idleBus=(s.buses||[]).find(b=>!b.isBareChassis&&b.id!==brokenBusId&&(b.status==="IDLE"||!b.assignedRouteId));
+    if(!idleBus){alert("Peringatan CBM: Tidak ada bus cadangan/idle di garasi untuk dikirim sebagai Bus Sapu Jagat!");return;}
+
+    a(prev=>({
+      ...prev,
+      reputation:Math.min(100,(prev.reputation||50)+5),
+      buses:prev.buses.map(b=>{
+        if(b.id===brokenBusId){
+          return {...b,status:"MAINTENANCE",condition:45,assignedRouteId:null};
+        }
+        if(b.id===idleBus.id){
+          return {
+            ...b,
+            assignedRouteId:brokenBus.assignedRouteId,
+            status:"ON_ROUTE",
+            departureTime:brokenBus.departureTime,
+            passengers:brokenBus.passengers||30,
+            nickname:`Sapu Jagat (${idleBus.nickname||idleBus.model})`
+          };
+        }
+        return b;
+      }),
+      notifications:[...(prev.notifications||[]),`🚑 [RESCUE BERHASIL] Bus Sapu Jagat ${idleBus.licensePlate} berhasil mengevakuasi seluruh penumpang bus ${brokenBus.licensePlate}! Reputasi PO +5.`]
+    }));
+  };
+
+  const handleActivateTuslahAll=()=>{
+    a(prev=>{
+      const updatedModes={...prev.routePricingMode};
+      const updatedRoutes=(prev.routes||[]).map(rt=>{
+        updatedModes[rt.id]="TUSLAH";
+        const baseP=Math.round((rt.distance||100)*750);
+        return {...rt,ticketPrice:Math.round(baseP*1.75)};
+      });
+      return {
+        ...prev,
+        routePricingMode:updatedModes,
+        routes:updatedRoutes,
+        notifications:[...(prev.notifications||[]),`🚀 [TUSLAH LEBARAN] Tarif Tuslah Resmi (+75%) telah diaktifkan untuk seluruh rute AKAP PO!`]
+      };
+    });
+  };
+
+  const handleBkoPariwisataToAkap=()=>{
+    a(prev=>({
+      ...prev,
+      buses:(prev.buses||[]).map(b=>b.type==="PARIWISATA"?{...b,type:"AKAP"}:b),
+      notifications:[...(prev.notifications||[]),`🚌 [BKO MUDIK] Seluruh armada Divisi Pariwisata resmi diperbantukan sebagai Bus AKAP Mudik Lebaran!`]
+    }));
+  };
+
+  const handleUpgradeAksesoris=(busId,modType)=>{
+    const costMap={strobo:4500000,alcoa:12000000,spokspok:6500000};
+    const cost=costMap[modType]||5000000;
+    if((s.money||0)<cost){alert("Saldo PO tidak mencukupi untuk memasang aksesoris ini!");return;}
+    if(modType==="spokspok")playBasuriSound();
+
+    a(prev=>({
+      ...prev,
+      money:prev.money-cost,
+      buses:(prev.buses||[]).map(b=>{
+        if(b.id!==busId)return b;
+        const fac={...(b.facilities||{})};
+        if(modType==="strobo")fac.hasStrobo=true;
+        if(modType==="alcoa")fac.hasAlcoa=true;
+        if(modType==="spokspok")fac.hasSpokSpok=true;
+        return {...b,facilities:fac};
+      }),
+      notifications:[...(prev.notifications||[]),`✨ [BUSMANIA MODS] Berhasil memasang aksesoris ${modType.toUpperCase()} pada armada bus!`]
+    }));
+  };
+
   const handleAutoDispatchAll=()=>{
     a(prev=>{
       const idleBuses=(prev.buses||[]).filter(b=>!b.isBareChassis&&(b.status==="IDLE"||!b.assignedRouteId));
@@ -381,13 +567,22 @@ line-height: 1;
 
       e.jsxs("div",{className:"flex items-center gap-2 flex-wrap sm:flex-nowrap",children:[
         e.jsxs("div",{className:"bg-slate-950/80 p-1 rounded-xl border border-slate-800 flex gap-1",children:[
-          e.jsxs("button",{type:"button",onClick:()=>setTbMode("TIMETABLE"),className:`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${tbMode==="TIMETABLE"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
-            "📊 Timetable Grid"
+          e.jsxs("button",{type:"button",onClick:()=>setTbMode("TIMETABLE"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${tbMode==="TIMETABLE"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
+            "📊 Timetable"
           ]}),
-          e.jsxs("button",{type:"button",onClick:()=>setTbMode("FREQ_SETUP"),className:`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${tbMode==="FREQ_SETUP"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
-            "🗺️ Frekuensi Rute"
+          e.jsxs("button",{type:"button",onClick:()=>setTbMode("FREQ_SETUP"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${tbMode==="FREQ_SETUP"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
+            "🗺️ Frekuensi & Tarif"
           ]}),
-          e.jsxs("button",{type:"button",onClick:()=>setTbMode("AUTODISPATCH"),className:`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${tbMode==="AUTODISPATCH"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
+          e.jsxs("button",{type:"button",onClick:()=>setTbMode("AGENCIES"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${tbMode==="AGENCIES"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
+            "🏪 Loket Agen"
+          ]}),
+          e.jsxs("button",{type:"button",onClick:()=>setTbMode("MUDIK_OPS"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${tbMode==="MUDIK_OPS"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
+            "🌙 Mudik & Sapu Jagat"
+          ]}),
+          e.jsxs("button",{type:"button",onClick:()=>setTbMode("FLEET_MODS"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${tbMode==="FLEET_MODS"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
+            "🎨 Aksesoris Bus"
+          ]}),
+          e.jsxs("button",{type:"button",onClick:()=>setTbMode("AUTODISPATCH"),className:`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${tbMode==="AUTODISPATCH"?"bg-indigo-600 text-white shadow-lg shadow-indigo-900/40":"text-slate-400 hover:text-white hover:bg-slate-900"}`,children:[
             "⚡ Auto-Dispatch"
           ]})
         ]}),
@@ -574,7 +769,41 @@ line-height: 1;
                   e.jsx("option",{value:60,children:"60m (Longgar)"}),
                   e.jsx("option",{value:120,children:"120m (Jarang)"})
                 ]})
-              ]})
+              ]}),
+
+              e.jsxs("div",{className:"pt-2 border-t border-slate-900 space-y-1.5",children:[
+                e.jsxs("div",{className:"flex justify-between items-center text-[10px]",children:[
+                  e.jsx("span",{className:"font-bold text-slate-400",children:"💰 Regulasi Tarif Kemenhub:"}),
+                  e.jsxs("span",{className:"font-mono text-amber-400 font-bold",children:["Rp ",(rt.ticketPrice||Math.round((rt.distance||100)*750)).toLocaleString("id-ID")]})
+                ]}),
+                e.jsxs("div",{className:"grid grid-cols-4 gap-1 text-[9px] font-bold",children:[
+                  e.jsx("button",{type:"button",onClick:()=>handleSetRouteTarif(rt.id,"TBB"),className:`py-1 rounded border transition-all ${((s.routePricingMode&&s.routePricingMode[rt.id])==="TBB")?"bg-cyan-950 text-cyan-300 border-cyan-500":"bg-slate-900 text-slate-400 border-slate-800 hover:text-white"}`,children:"TBB (-25%)"}),
+                  e.jsx("button",{type:"button",onClick:()=>handleSetRouteTarif(rt.id,"NORMAL"),className:`py-1 rounded border transition-all ${(!s.routePricingMode||!s.routePricingMode[rt.id]||s.routePricingMode[rt.id]==="NORMAL")?"bg-emerald-950 text-emerald-300 border-emerald-500":"bg-slate-900 text-slate-400 border-slate-800 hover:text-white"}`,children:"Normal"}),
+                  e.jsx("button",{type:"button",onClick:()=>handleSetRouteTarif(rt.id,"TBA"),className:`py-1 rounded border transition-all ${((s.routePricingMode&&s.routePricingMode[rt.id])==="TBA")?"bg-purple-950 text-purple-300 border-purple-500":"bg-slate-900 text-slate-400 border-slate-800 hover:text-white"}`,children:"TBA (+30%)"}),
+                  e.jsx("button",{type:"button",onClick:()=>handleSetRouteTarif(rt.id,"TUSLAH"),className:`py-1 rounded border transition-all ${((s.routePricingMode&&s.routePricingMode[rt.id])==="TUSLAH")?"bg-rose-950 text-rose-300 border-rose-500":"bg-slate-900 text-slate-400 border-slate-800 hover:text-white"}`,children:"Tuslah (+75%)"})
+                ]})
+              ]}),
+
+              (()=>{
+                const rivalName=["PO Sinar Pantura","PO Harapan Nusantara","PO Gunung Kilat","PO Jaya Abadi"][Math.abs(rt.name.length)%4];
+                const pBuses=assignedBuses.length;
+                const playerShare=Math.min(95,Math.max(15,Math.round((pBuses/(pBuses+2))*100)));
+                const rivalShare=100-playerShare;
+                return e.jsxs("div",{className:"pt-2 border-t border-slate-900 space-y-1",children:[
+                  e.jsxs("div",{className:"flex justify-between items-center text-[10px]",children:[
+                    e.jsxs("span",{className:"font-bold text-slate-400",children:["🏆 Market Share vs ",rivalName,":"]}),
+                    e.jsxs("span",{className:"font-mono text-cyan-400 font-bold",children:[playerShare,"% PO Kita"]})
+                  ]}),
+                  e.jsxs("div",{className:"w-full h-1.5 bg-slate-800 rounded-full overflow-hidden flex",children:[
+                    e.jsx("div",{className:"h-full bg-cyan-500 transition-all",style:{width:`${playerShare}%`}}),
+                    e.jsx("div",{className:"h-full bg-rose-500 transition-all",style:{width:`${rivalShare}%`}})
+                  ]}),
+                  e.jsxs("div",{className:"flex justify-between text-[8px] text-slate-500 font-mono",children:[
+                    e.jsxs("span",{children:["PO Kita: ",playerShare,"%"]}),
+                    e.jsxs("span",{children:[rivalName,": ",rivalShare,"%"]})
+                  ]})
+                ]});
+              })()
             ]}),
 
             e.jsxs("div",{className:"bg-slate-950/80 p-3 rounded-xl border border-slate-800/80 space-y-2 text-xs",children:[
@@ -608,6 +837,205 @@ line-height: 1;
         ]},rt.id);
       })})
     ]}):
+
+    tbMode==="AGENCIES"?(()=>{
+      const TERMINALS=[
+        {id:"term_pgebang",name:"Terminal Pulo Gebang",city:"DKI Jakarta",rentCost:15e6,rate:85e4},
+        {id:"term_tirtonadi",name:"Terminal Tirtonadi",city:"Surakarta / Solo",rentCost:12e6,rate:72e4},
+        {id:"term_bungurasih",name:"Terminal Bungurasih",city:"Surabaya",rentCost:14e6,rate:8e5},
+        {id:"term_harjamukti",name:"Terminal Harjamukti",city:"Cirebon",rentCost:1e7,rate:6e5},
+        {id:"term_rajabasa",name:"Terminal Rajabasa",city:"Bandar Lampung",rentCost:11e6,rate:65e4},
+        {id:"term_giwangan",name:"Terminal Giwangan",city:"Yogyakarta",rentCost:12e6,rate:7e5}
+      ];
+      const agMap=s.terminalAgencies||{};
+      const totalSaldo=Object.values(agMap).reduce((acc,it)=>acc+(it.balance||0),0);
+
+      return e.jsxs("div",{className:"flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar",children:[
+        e.jsxs("div",{className:"bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl",children:[
+          e.jsxs("div",{className:"space-y-1",children:[
+            e.jsx("h2",{className:"text-base font-black text-white flex items-center gap-2",children:[
+              "🏪 Jaringan Agen & Loket Tiket Terminal"
+            ]}),
+            e.jsx("p",{className:"text-xs text-slate-400 max-w-xl",children:"Sewa kios loket resmi di terminal-terminal strategis untuk meningkatkan penyerapan penumpang rute dan mengumpulkan omset setoran tiket secara berkala."})
+          ]}),
+          e.jsxs("div",{className:"flex items-center gap-3",children:[
+            e.jsxs("div",{className:"bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-right",children:[
+              e.jsx("div",{className:"text-[10px] text-slate-400 font-bold uppercase",children:"Total Setoran Belum Dicairkan"}),
+              e.jsxs("div",{className:"text-emerald-400 font-mono font-black text-sm",children:["Rp ",totalSaldo.toLocaleString("id-ID")]})
+            ]}),
+            e.jsxs("button",{type:"button",onClick:handleCollectAllSetoran,className:"bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow flex items-center gap-1.5",children:[
+              "💰 Ambil Semua Setoran"
+            ]})
+          ]})
+        ]}),
+
+        e.jsx("div",{className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4",children:TERMINALS.map(term=>{
+          const agData=agMap[term.id];
+          const isRented=!!agData;
+          const lvl=agData?agData.level||1:0;
+          const balance=agData?agData.balance||0:0;
+
+          return e.jsxs("div",{className:"bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-md",children:[
+            e.jsxs("div",{className:"space-y-2",children:[
+              e.jsxs("div",{className:"flex justify-between items-start border-b border-slate-800 pb-2.5",children:[
+                e.jsxs("div",{children:[
+                  e.jsx("h3",{className:"font-black text-sm text-white",children:term.name}),
+                  e.jsx("span",{className:"text-[10px] text-slate-400 font-mono",children:term.city})
+                ]}),
+                e.jsx("span",{className:`text-[10px] font-bold px-2 py-0.5 rounded-full ${isRented?"bg-emerald-950 text-emerald-400 border border-emerald-800":"bg-slate-800 text-slate-400"}`,children:isRented?`Level ${lvl} (Aktif)`:"Belum Disewa"})
+              ]}),
+
+              isRented?e.jsxs("div",{className:"bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2 text-xs",children:[
+                e.jsxs("div",{className:"flex justify-between items-center",children:[
+                  e.jsx("span",{className:"text-slate-400",children:"Tipe Loket:"}),
+                  e.jsx("span",{className:"font-bold text-cyan-400",children:lvl===3?"Kantor Cabang VIP":lvl===2?"Kios Loket Resmi":"Kemitraan Kios"})
+                ]}),
+                e.jsxs("div",{className:"flex justify-between items-center",children:[
+                  e.jsx("span",{className:"text-slate-400",children:"Saldo Setoran Terkumpul:"}),
+                  e.jsxs("span",{className:"font-mono font-black text-emerald-400 text-sm",children:["Rp ",balance.toLocaleString("id-ID")]})
+                ]}),
+                e.jsxs("div",{className:"flex justify-between items-center text-[10px] text-slate-500 pt-1 border-t border-slate-900",children:[
+                  e.jsx("span",{children:"Bonus Penyerapan Tiket:"}),
+                  e.jsxs("span",{className:"text-amber-400 font-bold",children:["+",lvl*35,"% Penumpang"]})
+                ]})
+              ]}):
+              e.jsxs("div",{className:"bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2 text-xs",children:[
+                e.jsxs("div",{className:"flex justify-between items-center",children:[
+                  e.jsx("span",{className:"text-slate-400",children:"Biaya Sewa Kios:"}),
+                  e.jsxs("span",{className:"font-mono font-bold text-amber-400",children:["Rp ",term.rentCost.toLocaleString("id-ID")]})
+                ]}),
+                e.jsx("p",{className:"text-[10px] text-slate-500 leading-relaxed",children:"Membuka loket di terminal ini akan mendongkrak penjualan tiket rute Anda dan menyetorkan omset harian."})
+              ]})
+            ]}),
+
+            e.jsxs("div",{className:"flex gap-2 pt-1",children:[
+              !isRented?
+              e.jsxs("button",{type:"button",onClick:()=>handleRentAgency(term.id,term.name,term.rentCost),className:"w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1",children:[
+                "Sewa Loket Terminal (Rp ",(term.rentCost/1e6).toFixed(0)," Jt)"
+              ]}):
+              e.jsxs("div",{className:"flex gap-2 w-full",children:[
+                e.jsx("button",{type:"button",onClick:()=>handleCollectAgencySetoran(term.id),className:"flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-1.5 rounded-xl text-xs font-bold transition-all",children:"Ambil Setoran"}),
+                lvl<3&&e.jsxs("button",{type:"button",onClick:()=>handleUpgradeAgency(term.id,term.name,25e6),className:"px-3 bg-purple-600 hover:bg-purple-500 text-white py-1.5 rounded-xl text-xs font-bold transition-all shrink-0",children:[
+                  "Upgrade Lvl ",lvl+1
+                ]})
+              ]})
+            ]})
+          ]},term.id);
+        })})
+      ]});
+    })():
+
+    tbMode==="MUDIK_OPS"?(()=>{
+      const isMudik=((s.day||1)%30)>=23&&((s.day||1)%30)<=29;
+      const daysUntilMudik=isMudik?0:(23-((s.day||1)%30)+30)%30;
+      const brokenBuses=(s.buses||[]).filter(b=>b.status==="BROKEN_DOWN");
+
+      return e.jsxs("div",{className:"flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar",children:[
+        e.jsxs("div",{className:`border rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl transition-all ${isMudik?"bg-gradient-to-r from-amber-950/80 via-slate-900 to-rose-950/80 border-amber-500/50":"bg-slate-900/90 border-slate-800"}`,children:[
+          e.jsxs("div",{className:"space-y-1.5",children:[
+            e.jsxs("div",{className:"flex items-center gap-2",children:[
+              e.jsx("span",{className:`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black uppercase border ${isMudik?"bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse":"bg-slate-800 text-slate-400 border-slate-700"}`,children:isMudik?"🌙 PEAK SEASON MUDIK AKTIF":"📅 HARI OPERASIONAL BIASA"}),
+              e.jsxs("span",{className:"text-xs text-slate-400 font-mono",children:["Hari Ke-",s.day||1]})
+            ]}),
+            e.jsx("h2",{className:"text-lg font-black text-white",children:isMudik?"Musim Mudik Lebaran: Lonjakan Penumpang 400%!":"Manajemen Musim & Tanggap Darurat Lapangan"}),
+            e.jsx("p",{className:"text-xs text-slate-300 max-w-xl leading-relaxed",children:isMudik?"Seluruh terminal mengalami lonjakan pemudik luar biasa! Aktifkan tarif tuslah resmi dan gunakan armada bus bantuan pariwisata agar tidak ada pemudik telantar.":`Musim Mudik Lebaran berikutnya diperkirakan tiba pada H-${daysUntilMudik}. Siapkan ketersediaan armada bus cadangan dan pengemudi.`})
+          ]}),
+
+          e.jsxs("div",{className:"flex flex-wrap gap-2 shrink-0",children:[
+            e.jsx("button",{type:"button",onClick:handleActivateTuslahAll,className:"bg-amber-600 hover:bg-amber-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow flex items-center gap-1.5",children:"🚀 Aktifkan Tarif Tuslah (+75%)"}),
+            e.jsx("button",{type:"button",onClick:handleBkoPariwisataToAkap,className:"bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow flex items-center gap-1.5",children:"🚌 Izin BKO Pariwisata"}),
+            e.jsx("button",{type:"button",onClick:handleTriggerRoadIncident,className:"bg-rose-700 hover:bg-rose-600 text-white px-3 py-2 rounded-xl text-xs font-bold transition-all shadow",children:"🚨 Simulasi Insiden Tol"})
+          ]})
+        ]}),
+
+        e.jsxs("div",{className:"space-y-3",children:[
+          e.jsxs("div",{className:"flex justify-between items-center",children:[
+            e.jsxs("h3",{className:"text-sm font-black text-white flex items-center gap-2",children:[
+              "🚑 Pusat Dispatch Darurat: Bus Sapu Jagat",
+              brokenBuses.length>0&&e.jsxs("span",{className:"px-2 py-0.5 bg-rose-500/20 text-rose-400 border border-rose-500/40 rounded-full text-[10px] font-mono font-bold animate-ping",children:[brokenBuses.length," MOGOK"]})
+            ]}),
+            e.jsx("span",{className:"text-xs text-slate-400",children:"Evakuasi penumpang bus yang mogok di jalan"})
+          ]}),
+
+          brokenBuses.length===0?
+          e.jsx("div",{className:"bg-slate-900/60 border border-slate-800/80 rounded-2xl p-6 text-center text-slate-500 text-xs font-mono italic",children:"✅ Seluruh armada beroperasi lancar di jalur. Tidak ada insiden kerusakan mesin di jalan saat ini."}):
+          e.jsx("div",{className:"grid grid-cols-1 md:grid-cols-2 gap-4",children:brokenBuses.map(b=>{
+            const rt=(s.routes||[]).find(r=>r.id===b.assignedRouteId);
+            return e.jsxs("div",{className:"bg-rose-950/40 border border-rose-800/60 rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-lg",children:[
+              e.jsxs("div",{className:"space-y-1.5",children:[
+                e.jsxs("div",{className:"flex justify-between items-start",children:[
+                  e.jsxs("div",{children:[
+                    e.jsxs("h4",{className:"font-black text-sm text-rose-300",children:[b.licensePlate," (",b.model,")"]}),
+                    e.jsxs("span",{className:"text-xs text-slate-400",children:["Rute: ",(rt==null?void 0:rt.name)||"Jalur AKAP"]})
+                  ]}),
+                  e.jsx("span",{className:"text-[10px] font-bold px-2 py-0.5 rounded bg-rose-900 text-rose-200 uppercase",children:"MOGOK DI TOL"})
+                ]}),
+                e.jsxs("div",{className:"text-xs text-amber-300 font-mono bg-slate-950/80 p-2.5 rounded-xl border border-slate-800",children:[
+                  "⚠️ Kendala: ",b.breakdownReason||"Kerusakan Mesin & Radiator Bocor",
+                  e.jsxs("div",{className:"text-[10px] text-slate-400 mt-1",children:[b.passengers||30," Penumpang telantar menunggu evakuasi bus pengganti!"]})
+                ]})
+              ]}),
+
+              e.jsxs("button",{type:"button",onClick:()=>handleDispatchSapuJagat(b.id),className:"w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-xl text-xs font-bold transition-all shadow flex items-center justify-center gap-1.5",children:[
+                "🚑 Kirim Bus Sapu Jagat (Evakuasi Penumpang)"
+              ]})
+            ]},b.id);
+          })})
+        ]})
+      ]});
+    })():
+
+    tbMode==="FLEET_MODS"?(()=>{
+      return e.jsxs("div",{className:"flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar",children:[
+        e.jsxs("div",{className:"bg-slate-900/90 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl",children:[
+          e.jsxs("div",{className:"space-y-1",children:[
+            e.jsx("h2",{className:"text-base font-black text-white flex items-center gap-2",children:[
+              "🎨 Bengkel Modifikasi & Aksesoris Busmania"
+            ]}),
+            e.jsx("p",{className:"text-xs text-slate-400 max-w-xl",children:"Tingkatkan daya tarik dan prestige armada bus Anda dengan lampu Strobo running text, Velg Alcoa mengkilap, serta Klakson Basuri V3 & knalpot Spok-spok!"})
+          ]}),
+          e.jsxs("button",{type:"button",onClick:playBasuriSound,className:"bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white px-4 py-2.5 rounded-xl text-xs font-black transition-all shadow-lg flex items-center gap-2",children:[
+            "🔊 Uji Klakson Basuri Telolet"
+          ]})
+        ]}),
+
+        e.jsx("div",{className:"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4",children:(s.buses||[]).filter(b=>!b.isBareChassis).map(b=>{
+          const fac=b.facilities||{};
+          return e.jsxs("div",{className:"bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3 shadow-md",children:[
+            e.jsxs("div",{className:"space-y-2",children:[
+              e.jsxs("div",{className:"flex justify-between items-start border-b border-slate-800 pb-2.5",children:[
+                e.jsxs("div",{children:[
+                  e.jsx("h3",{className:"font-black text-sm text-white",children:b.licensePlate}),
+                  e.jsxs("span",{className:"text-[10px] text-slate-400 font-mono",children:[b.nickname?`"${b.nickname}" • `:null,b.model]})
+                ]}),
+                e.jsxs("span",{className:"text-[10px] font-mono font-bold text-cyan-400 bg-cyan-950/80 border border-cyan-800 px-2 py-0.5 rounded-full",children:[b.capacity," Seat"]})
+              ]}),
+
+              e.jsxs("div",{className:"bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2 text-xs",children:[
+                e.jsxs("div",{className:"flex justify-between items-center",children:[
+                  e.jsx("span",{className:"text-slate-400",children:"🚨 Lampu Strobo:"}),
+                  e.jsx("span",{className:fac.hasStrobo?"text-emerald-400 font-bold":"text-slate-600",children:fac.hasStrobo?"Terpasang (Aktif)":"Belum Ada"})
+                ]}),
+                e.jsxs("div",{className:"flex justify-between items-center",children:[
+                  e.jsx("span",{className:"text-slate-400",children:"✨ Velg Alcoa Polish:"}),
+                  e.jsx("span",{className:fac.hasAlcoa?"text-cyan-400 font-bold":"text-slate-600",children:fac.hasAlcoa?"Terpasang (Mengkilap)":"Bawaan Standar"})
+                ]}),
+                e.jsxs("div",{className:"flex justify-between items-center",children:[
+                  e.jsx("span",{className:"text-slate-400",children:"🎺 Basuri & Spok-spok:"}),
+                  e.jsx("span",{className:fac.hasSpokSpok?"text-amber-400 font-bold":"text-slate-600",children:fac.hasSpokSpok?"Terpasang (Ready)":"Belum Pasang"})
+                ]})
+              ]})
+            ]}),
+
+            e.jsxs("div",{className:"grid grid-cols-3 gap-1.5 pt-1",children:[
+              e.jsx("button",{type:"button",disabled:fac.hasStrobo,onClick:()=>handleUpgradeAksesoris(b.id,"strobo"),className:`py-1.5 rounded-xl text-[10px] font-bold transition-all border ${fac.hasStrobo?"bg-emerald-950/40 text-emerald-500 border-emerald-900/40 cursor-default":"bg-indigo-600 hover:bg-indigo-500 text-white border-transparent"}`,children:fac.hasStrobo?"✓ Strobo":"+ Strobo (4.5Jt)"}),
+              e.jsx("button",{type:"button",disabled:fac.hasAlcoa,onClick:()=>handleUpgradeAksesoris(b.id,"alcoa"),className:`py-1.5 rounded-xl text-[10px] font-bold transition-all border ${fac.hasAlcoa?"bg-cyan-950/40 text-cyan-500 border-cyan-900/40 cursor-default":"bg-cyan-600 hover:bg-cyan-500 text-white border-transparent"}`,children:fac.hasAlcoa?"✓ Alcoa":"+ Alcoa (12Jt)"}),
+              e.jsx("button",{type:"button",disabled:fac.hasSpokSpok,onClick:()=>handleUpgradeAksesoris(b.id,"spokspok"),className:`py-1.5 rounded-xl text-[10px] font-bold transition-all border ${fac.hasSpokSpok?"bg-amber-950/40 text-amber-500 border-amber-900/40 cursor-default":"bg-amber-600 hover:bg-amber-500 text-white border-transparent"}`,children:fac.hasSpokSpok?"✓ Basuri":"+ Basuri (6.5Jt)"})
+            ]})
+          ]},b.id);
+        })})
+      ]});
+    })():
 
     e.jsxs("div",{className:"flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar",children:[
       e.jsxs("div",{className:"bg-gradient-to-r from-indigo-950/80 via-slate-900 to-teal-950/80 border border-indigo-500/30 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xl",children:[
