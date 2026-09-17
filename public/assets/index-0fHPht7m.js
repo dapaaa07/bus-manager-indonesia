@@ -277,6 +277,68 @@ line-height: 1;
     });
   };
 
+  const handleAdjustBusDeparture=(busId,newTimeOrDelta)=>{
+    a(prev=>{
+      const bus=(prev.buses||[]).find(b=>b.id===busId);
+      if(!bus||!bus.departureTime)return prev;
+      let newDepM=0;
+      if(typeof newTimeOrDelta==="number"){
+        const curM=parseT(bus.departureTime);
+        newDepM=(curM+newTimeOrDelta+1440)%1440;
+      }else if(typeof newTimeOrDelta==="string"){
+        newDepM=parseT(newTimeOrDelta);
+      }
+      newDepM=Math.round(newDepM/15)*15;
+      const depH=Math.floor((newDepM%1440)/60);
+      const depMin=newDepM%60;
+      const depTimeStr=`${String(depH).padStart(2,"0")}:${String(depMin).padStart(2,"0")}`;
+
+      const rt=(prev.routes||[]).find(r=>r.id===bus.assignedRouteId);
+      const dist=rt?(rt.distance||100):100;
+      const oneWayM=Math.max(45,Math.min(360,Math.round((dist/40)*60)));
+      const retM=newDepM+oneWayM+15;
+      const retH=Math.floor((retM%1440)/60);
+      const retMin=retM%60;
+      const retTimeStr=`${String(retH).padStart(2,"0")}:${String(retMin).padStart(2,"0")}`;
+
+      const updatedBuses=(prev.buses||[]).map(b=>{
+        if(b.id!==busId)return b;
+        return {
+          ...b,
+          departureTime:depTimeStr,
+          returnDepartureTime:retTimeStr
+        };
+      });
+
+      return {
+        ...prev,
+        buses:updatedBuses,
+        notifications:[
+          ...(prev.notifications||[]),
+          `🕒 [JADWAL DISPATCH] Jadwal bus ${bus.licensePlate} digeser ke ${depTimeStr} WIB!`
+        ]
+      };
+    });
+    setSelTrip(prev=>{
+      if(prev&&prev.bus&&prev.bus.id===busId){
+        const rt=(s.routes||[]).find(r=>r.id===prev.bus.assignedRouteId);
+        const dist=rt?(rt.distance||100):100;
+        let newDepM=0;
+        if(typeof newTimeOrDelta==="number"){
+          newDepM=(parseT(prev.bus.departureTime)+newTimeOrDelta+1440)%1440;
+        }else if(typeof newTimeOrDelta==="string"){
+          newDepM=parseT(newTimeOrDelta);
+        }
+        newDepM=Math.round(newDepM/15)*15;
+        const depH=Math.floor((newDepM%1440)/60);
+        const depMin=newDepM%60;
+        const depTimeStr=`${String(depH).padStart(2,"0")}:${String(depMin).padStart(2,"0")}`;
+        return {...prev,bus:{...prev.bus,departureTime:depTimeStr}};
+      }
+      return prev;
+    });
+  };
+
   const playBasuriSound=()=>{
     try{
       const AudioCtx=window.AudioContext||window.webkitAudioContext;
@@ -656,7 +718,17 @@ line-height: 1;
                     ]})
                   ]}),
 
-                  e.jsxs("div",{className:"flex-1 relative min-h-[68px] p-1 bg-slate-950/30 flex items-center",children:[
+                  e.jsxs("div",{onDragOver:ev=>ev.preventDefault(),onDrop:ev=>{
+                    ev.preventDefault();
+                    const bId=ev.dataTransfer.getData("text/plain");
+                    if(!bId)return;
+                    const rect=ev.currentTarget.getBoundingClientRect();
+                    const pct=Math.max(0,Math.min(1,(ev.clientX-rect.left)/rect.width));
+                    const min=Math.round((pct*1440)/15)*15;
+                    const h=Math.floor((min%1440)/60);
+                    const m=min%60;
+                    handleAdjustBusDeparture(bId,`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`);
+                  },className:"flex-1 relative min-h-[68px] p-1 bg-slate-950/30 flex items-center",children:[
                     hoursArr.map(hr=>e.jsx("div",{className:"absolute top-0 bottom-0 border-r border-slate-800/40 pointer-events-none",style:{left:`${(hr/24)*100}%`,width:`${(1/24)*100}%`}},hr)),
                     rBuses.length===0?e.jsx("div",{className:"text-[10px] text-slate-600 italic px-4 font-mono",children:"Belum ada armada bus dijadwalkan pada rute ini"}):
                     rBuses.map(B=>{
@@ -668,9 +740,13 @@ line-height: 1;
                       const stStyle=getStatusStyle(B.status);
                       const tInfo=getBusTicketsSold(B.id);
 
-                      return e.jsxs("div",{role:"button",tabIndex:0,onClick:()=>setSelTrip({bus:B,route:R}),onKeyDown:e=>e.key==="Enter"&&setSelTrip({bus:B,route:R}),className:`absolute rounded-lg border px-2 py-1 cursor-pointer transition-all hover:scale-[1.02] hover:z-30 shadow-md ${stStyle}`,style:{left:`${leftP}%`,width:`${widthP}%`},children:[
+                      return e.jsxs("div",{draggable:true,onDragStart:ev=>{ev.dataTransfer.setData("text/plain",B.id);},title:"Tahan & geser untuk memindahkan jam keberangkatan",role:"button",tabIndex:0,onClick:()=>setSelTrip({bus:B,route:R}),onKeyDown:e=>e.key==="Enter"&&setSelTrip({bus:B,route:R}),className:`absolute rounded-lg border px-2 py-1 cursor-grab active:cursor-grabbing transition-all hover:scale-[1.02] hover:z-30 shadow-md ${stStyle} group`,style:{left:`${leftP}%`,width:`${widthP}%`},children:[
                         e.jsxs("div",{className:"flex items-center justify-between gap-1 text-[10px] font-mono font-black border-b border-white/20 pb-0.5",children:[
-                          e.jsxs("span",{children:[B.departureTime," WIB"]}),
+                          e.jsxs("div",{className:"flex items-center gap-1",children:[
+                            e.jsx("button",{type:"button",title:"Mundurkan 15 Menit",onClick:ev=>{ev.stopPropagation();handleAdjustBusDeparture(B.id,-15);},className:"hover:bg-white/20 px-1 rounded text-[8px] opacity-70 hover:opacity-100",children:"◄"}),
+                            e.jsxs("span",{children:[B.departureTime," WIB"]}),
+                            e.jsx("button",{type:"button",title:"Majukan 15 Menit",onClick:ev=>{ev.stopPropagation();handleAdjustBusDeparture(B.id,15);},className:"hover:bg-white/20 px-1 rounded text-[8px] opacity-70 hover:opacity-100",children:"►"})
+                          ]}),
                           e.jsx("span",{className:"bg-black/30 px-1 rounded text-[9px]",children:B.licensePlate})
                         ]}),
                         e.jsxs("div",{className:"text-[9px] truncate font-extrabold mt-0.5 flex items-center justify-between",children:[
@@ -1083,6 +1159,23 @@ line-height: 1;
           ]}),
 
           e.jsxs("div",{className:"space-y-2.5 text-xs text-slate-300",children:[
+            e.jsxs("div",{className:"bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2.5",children:[
+              e.jsxs("div",{className:"flex justify-between items-center",children:[
+                e.jsx("span",{className:"font-bold text-xs text-amber-400 flex items-center gap-1.5",children:[
+                  "🕒 Geser / Atur Jam Keberangkatan:"
+                ]}),
+                e.jsx("input",{type:"time",value:selTrip.bus.departureTime||"08:00",onChange:ev=>handleAdjustBusDeparture(selTrip.bus.id,ev.target.value),className:"bg-slate-900 border border-slate-700 text-amber-400 font-mono font-black text-xs rounded-lg px-2.5 py-1 focus:outline-none focus:border-amber-500 cursor-pointer"})
+              ]}),
+              e.jsxs("div",{className:"flex items-center gap-1.5",children:[
+                e.jsx("button",{type:"button",onClick:()=>handleAdjustBusDeparture(selTrip.bus.id,-60),className:"flex-1 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-[10px] font-bold text-slate-300 transition-all",children:"-60m"}),
+                e.jsx("button",{type:"button",onClick:()=>handleAdjustBusDeparture(selTrip.bus.id,-30),className:"flex-1 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-[10px] font-bold text-slate-300 transition-all",children:"-30m"}),
+                e.jsx("button",{type:"button",onClick:()=>handleAdjustBusDeparture(selTrip.bus.id,-15),className:"flex-1 py-1.5 bg-indigo-950 hover:bg-indigo-900 border border-indigo-600 text-indigo-300 rounded-lg text-[10px] font-bold transition-all",children:"-15m"}),
+                e.jsx("button",{type:"button",onClick:()=>handleAdjustBusDeparture(selTrip.bus.id,15),className:"flex-1 py-1.5 bg-indigo-950 hover:bg-indigo-900 border border-indigo-600 text-indigo-300 rounded-lg text-[10px] font-bold transition-all",children:"+15m"}),
+                e.jsx("button",{type:"button",onClick:()=>handleAdjustBusDeparture(selTrip.bus.id,30),className:"flex-1 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-[10px] font-bold text-slate-300 transition-all",children:"+30m"}),
+                e.jsx("button",{type:"button",onClick:()=>handleAdjustBusDeparture(selTrip.bus.id,60),className:"flex-1 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-[10px] font-bold text-slate-300 transition-all",children:"+60m"})
+              ]}),
+              e.jsx("p",{className:"text-[10px] text-slate-500 italic",children:"💡 Tip: Anda juga dapat langsung menyeret/menggeser (drag) balok bus pada tabel jadwal 24 jam."})
+            ]}),
             e.jsxs("div",{className:"bg-slate-950 p-3.5 rounded-xl border border-emerald-500/30 flex justify-between items-center shadow-inner",children:[
               e.jsxs("div",{children:[
                 e.jsx("span",{className:"text-[10px] text-slate-400 font-bold uppercase block",children:"🎫 Tiket Terjual Armada Ini"}),
