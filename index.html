@@ -116,6 +116,7 @@
     <script>
       window.onerror = function(message, source, lineno, colno, error) {
         var msgStr = String(message || '') + ' ' + String(error && error.message || '');
+        if (msgStr.includes("M_ID") || String(source || "").includes("extension")) { return true; }
         if (
           msgStr.includes('FIRESTORE INTERNAL ASSERTION FAILED') ||
           msgStr.includes('prefixPath') ||
@@ -142,8 +143,12 @@
         }
       };
       window.onunhandledrejection = function(event) {
-        var reasonStr = String(event && event.reason ? (event.reason.message || event.reason) : '');
+        var reasonStr = String(event && event.reason ? (event.reason.message || event.reason.stack || event.reason) : '');
         if (
+          reasonStr.includes('M_ID') ||
+          reasonStr.includes('chrome-extension') ||
+          reasonStr.includes('moz-extension') ||
+          reasonStr.includes('safari-extension') ||
           reasonStr.includes('FIRESTORE INTERNAL ASSERTION FAILED') ||
           reasonStr.includes('prefixPath') ||
           reasonStr.includes('IndexedDb') ||
@@ -158,15 +163,11 @@
           reasonStr.includes("Failed to execute 'measure' on 'Performance'") ||
           reasonStr.includes('Should not already be working')
         ) {
-          console.warn("Benign rejection suppressed:", event.reason);
+          console.warn("Benign extension/background rejection suppressed:", event.reason);
           event.preventDefault();
           return;
         }
-        var overlay = document.getElementById('error-overlay');
-        if(overlay) {
-          overlay.style.display = 'block';
-          overlay.innerText += "PROMISE REJECTION: " + event.reason + "\n\n";
-        }
+        console.warn("Unhandled Promise Rejection:", event.reason);
       };
     </script>
     
@@ -226,6 +227,6 @@
         <p style="opacity: 0.5; font-size: 0.75rem; margin-top: 2rem;">Butuh Internet untuk Awal</p>
       </div>
     </div>
-    <div id="error-overlay"></div>
+    <div id="error-overlay" onclick="this.style.display='none'"></div>
   </body>
 </html>
