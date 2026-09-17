@@ -1145,9 +1145,12 @@ line-height: 1;
 
     selTrip&&(()=>{
       const tInfo=getBusTicketsSold(selTrip.bus.id);
-      return e.jsx("div",{className:"fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4",children:
-        e.jsxs("div",{className:"bg-slate-900 border border-slate-700 rounded-2xl p-5 max-w-lg w-full shadow-2xl space-y-4 animate-in fade-in zoom-in duration-200",children:[
-          e.jsxs("div",{className:"flex justify-between items-center border-b border-slate-800 pb-3",children:[
+      const dispCount=Math.min(tInfo.capacity,tInfo.count);
+      const dispLoad=Math.min(100,Math.round((dispCount/(tInfo.capacity||1))*100));
+
+      return e.jsx("div",{className:"fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 pb-20 sm:pb-4 overflow-y-auto",children:
+        e.jsxs("div",{className:"bg-slate-900 border border-slate-700 rounded-2xl p-4 sm:p-5 max-w-lg w-full max-h-[82vh] flex flex-col shadow-2xl space-y-3 animate-in fade-in zoom-in duration-200 overflow-hidden my-auto",children:[
+          e.jsxs("div",{className:"flex justify-between items-center border-b border-slate-800 pb-3 shrink-0",children:[
             e.jsxs("div",{className:"flex items-center gap-2",children:[
               e.jsx(Qi,{className:"text-indigo-400",size:20}),
               e.jsxs("div",{children:[
@@ -1155,10 +1158,10 @@ line-height: 1;
                 e.jsx("p",{className:"text-[10px] text-slate-400 font-mono",children:selTrip.bus.model})
               ]})
             ]}),
-            e.jsx("button",{type:"button",onClick:()=>setSelTrip(null),className:"p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors",children:e.jsx(Ot,{size:18})})
+            e.jsx("button",{type:"button",onClick:()=>setSelTrip(null),className:"p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer",children:e.jsx(Ot,{size:18})})
           ]}),
 
-          e.jsxs("div",{className:"space-y-2.5 text-xs text-slate-300",children:[
+          e.jsxs("div",{className:"flex-1 overflow-y-auto pr-1 space-y-2.5 text-xs text-slate-300 custom-scrollbar",children:[
             e.jsxs("div",{className:"bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2.5",children:[
               e.jsxs("div",{className:"flex justify-between items-center",children:[
                 e.jsx("span",{className:"font-bold text-xs text-amber-400 flex items-center gap-1.5",children:[
@@ -1176,10 +1179,11 @@ line-height: 1;
               ]}),
               e.jsx("p",{className:"text-[10px] text-slate-500 italic",children:"💡 Tip: Anda juga dapat langsung menyeret/menggeser (drag) balok bus pada tabel jadwal 24 jam."})
             ]}),
+
             e.jsxs("div",{className:"bg-slate-950 p-3.5 rounded-xl border border-emerald-500/30 flex justify-between items-center shadow-inner",children:[
               e.jsxs("div",{children:[
                 e.jsx("span",{className:"text-[10px] text-slate-400 font-bold uppercase block",children:"🎫 Tiket Terjual Armada Ini"}),
-                e.jsxs("span",{className:"font-mono font-black text-base text-emerald-400",children:[tInfo.count," / ",tInfo.capacity," Kursi Terisi (",tInfo.loadFactor,"% Occupancy)"]})
+                e.jsxs("span",{className:"font-mono font-black text-base text-emerald-400",children:[dispCount," / ",tInfo.capacity," Kursi Terisi (",dispLoad,"% Occupancy)"]})
               ]}),
               e.jsxs("div",{className:"text-right",children:[
                 e.jsx("span",{className:"text-[10px] text-slate-400 font-bold uppercase block",children:"💰 Total Pendapatan Tiket"}),
@@ -1218,16 +1222,16 @@ line-height: 1;
             ]})
           ]}),
 
-          e.jsxs("div",{className:"flex gap-2 pt-2 border-t border-slate-800",children:[
-            e.jsxs("button",{type:"button",onClick:()=>{const bId=selTrip.bus.id;setSelTrip(null);F(bId);},className:"flex-1 bg-amber-600 hover:bg-amber-500 text-white py-2 rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5",children:[
+          e.jsxs("div",{className:"flex gap-2 pt-2.5 border-t border-slate-800 shrink-0 mt-auto",children:[
+            e.jsxs("button",{type:"button",onClick:()=>{const bId=selTrip.bus.id;setSelTrip(null);F(bId);},className:"flex-1 bg-amber-600 hover:bg-amber-500 text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer",children:[
               e.jsx(Jd,{size:14}),
               "Tukar Bus"
             ]}),
-            o&&e.jsxs("button",{type:"button",onClick:()=>{const bId=selTrip.bus.id;setSelTrip(null);o(bId);},className:"flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5",children:[
+            o&&e.jsxs("button",{type:"button",onClick:()=>{const bId=selTrip.bus.id;setSelTrip(null);o(bId);},className:"flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer",children:[
               e.jsx(So,{size:14}),
               "Sunting Dispatch"
             ]}),
-            e.jsx("button",{type:"button",onClick:()=>setSelTrip(null),className:"px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded-xl text-xs font-bold transition-all",children:"Tutup"})
+            e.jsx("button",{type:"button",onClick:()=>setSelTrip(null),className:"px-5 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer",children:"Tutup"})
           ]})
         ]})
       });
