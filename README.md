@@ -132,6 +132,12 @@ bus-manager-indonesia/
 
 ---
 
+## 🏷️ Topik & Kata Kunci Terkait
+
+`#bus-simulator` `#bussid` `#bus-manager-indonesia` `#tycoon-game` `#management-game` `#city-bus-manager` `#simulation-game` `#adiputro` `#jetbus` `#telolet-basuri` `#trans-jawa` `#busmania` `#game-indonesia` `#react` `#capacitor` `#android-game`
+
+---
+
 ## 📄 Lisensi & Kontribusi
 
 Proyek ini dikembangkan secara independen untuk komunitas pecinta bus & game simulasi manajemen di Indonesia.
